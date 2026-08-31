@@ -1,0 +1,18 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+public/pricing 2.html
+postgres-data/
+redis-data/
+
+# Native Android agent build state (the source remains tracked).
+android-agent/.gradle/
+android-agent/local.properties
+android-agent/**/build/
+android-agent/.idea/
+android-agent/*.iml

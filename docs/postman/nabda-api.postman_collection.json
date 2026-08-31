@@ -1,0 +1,420 @@
+{
+  "info": {
+    "_postman_id": "6f879f7d-74d7-4a38-9a76-319ae11cd1aa",
+    "name": "Nabda API",
+    "description": "Local developer collection for the Nabda transactional messaging API. Run it only against the included localhost environment and confirm GET /health reports provider_mode=mock before creating a message. The examples use a fictional recipient and expected transaction text. Never replace the dummy phone with a real recipient during development. The permanent Free plan has a monthly allowance of 1,000 accepted operations; this collection keeps a stable idempotency key so repeating the Create message request replays the same message instead of consuming usage twice. Change idempotency_key deliberately when testing a new Mock message. Run the Opt-out request last because it blocks subsequent message creation for recipient_phone.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const baseUrl = pm.environment.get('base_url') || '';",
+          "const localOnly = /^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?$/i;",
+          "if (!localOnly.test(baseUrl)) {",
+          "  throw new Error('Safety stop: this collection only runs against localhost or 127.0.0.1.');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "idempotency_key",
+      "value": "msg-demo-00000001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Unauthenticated checks. Start here and verify the local provider is Mock.",
+      "item": [
+        {
+          "name": "Service health and provider mode",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health",
+            "description": "Confirms the API process and provider mode. Do not run Create message unless provider_mode is mock."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Provider is Mock for local testing', () => pm.expect(body.provider_mode).to.eql('mock'));",
+                  "pm.test('Service reports ok', () => pm.expect(body.status).to.eql('ok'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Liveness",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health/live",
+            "description": "Checks that the HTTP process is alive."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Liveness reports ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health/ready",
+            "description": "Checks that PostgreSQL and Redis are reachable. A local setup should return 200."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Dependencies are ready', () => pm.expect(pm.response.json().status).to.eql('ready'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "description": "Queue one Mock message and retrieve it. The stable idempotency key makes retries safe.",
+      "item": [
+        {
+          "name": "Create message (Mock only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotency_key}}",
+                "type": "text",
+                "description": "Keep this value for identical retries; change it only for a new Mock message."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"{{recipient_phone}}\",\n  \"content\": \"Your test order NB-1001 is ready.\",\n  \"purpose\": \"transactional\",\n  \"consent_confirmed\": true,\n  \"consent_reference\": \"checkout-NB-1001\",\n  \"client_reference\": \"NB-1001\",\n  \"metadata\": {\n    \"environment\": \"local\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/v1/messages",
+            "description": "Queues an expected transaction message. Requires messages:write, an active Free subscription, an active Mock device, and available monthly allowance."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('api_key')) {",
+                  "  throw new Error('Set api_key in the selected local environment before creating a message.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202 or an idempotent 200 replay', () => pm.expect([200, 202]).to.include(pm.response.code));",
+                  "const body = pm.response.json();",
+                  "pm.test('Message is queued or already progressed', () => pm.expect(['queued', 'sent', 'delivered']).to.include(body.data.status));",
+                  "pm.environment.set('message_id', body.data.id);",
+                  "pm.test('Message id was stored', () => pm.expect(pm.environment.get('message_id')).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get message",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/messages/{{message_id}}",
+            "description": "Returns the tenant-owned message lifecycle. Requires messages:read."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response is a message', () => pm.expect(body.data.object).to.eql('message'));",
+                  "pm.test('Message id matches the environment', () => pm.expect(body.data.id).to.eql(pm.environment.get('message_id')));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Usage and queue",
+      "description": "Inspect Free-plan usage, rate limits, and queued work.",
+      "item": [
+        {
+          "name": "Get usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/usage",
+            "description": "Returns the current subscription period, credits, and per-minute message limit. Requires usage:read."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const usage = pm.response.json().data;",
+                  "pm.test('Usage values are internally consistent', () => {",
+                  "  pm.expect(usage.messages_used).to.be.a('number');",
+                  "  pm.expect(usage.message_limit).to.be.a('number');",
+                  "  pm.expect(usage.messages_remaining).to.eql(Math.max(usage.message_limit - usage.messages_used, 0));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get queue summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/queue",
+            "description": "Returns ready, scheduled, and processing counts for this organization. Requires messages:read."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const queue = pm.response.json().data;",
+                  "pm.test('Response is a queue summary', () => pm.expect(queue.object).to.eql('queue_summary'));",
+                  "pm.test('Queue counts are non-negative', () => {",
+                  "  ['queued_total', 'ready', 'scheduled', 'processing'].forEach((key) => pm.expect(queue[key]).to.be.at.least(0));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Contacts",
+      "description": "Create or update a contact, list contacts with cursor metadata, then delete the demo contact data.",
+      "item": [
+        {
+          "name": "Upsert contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Customer\",\n  \"phone\": \"{{recipient_phone}}\",\n  \"consent_reference\": \"checkout-NB-1001\",\n  \"tags\": [\"customer\", \"test\"],\n  \"metadata\": {\n    \"environment\": \"local\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/v1/contacts",
+            "description": "Creates the dummy contact or atomically updates the active contact with the same normalized phone. Requires contacts:write."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 or 200', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const contact = pm.response.json().data;",
+                  "pm.test('Response is a contact', () => pm.expect(contact.object).to.eql('contact'));",
+                  "pm.environment.set('contact_id', contact.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List contacts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/contacts?limit=20",
+            "description": "Lists active contacts and an opaque next_cursor. Requires contacts:read."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Contacts are returned as an array', () => pm.expect(body.data).to.be.an('array'));",
+                  "pm.test('Pagination metadata is present', () => pm.expect(body.meta).to.have.keys('limit', 'next_cursor'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete contact",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/v1/contacts/{{contact_id}}",
+            "description": "Deletes the contact row and its stored personal data. Requires contacts:write."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Opt-outs",
+      "description": "Run this folder last. The request blocks recipient_phone and cancels that recipient's queued messages for the organization.",
+      "item": [
+        {
+          "name": "Create opt-out (run last)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{recipient_phone}}\",\n  \"reason\": \"Demo recipient request\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/v1/opt-outs",
+            "description": "Adds the fictional recipient to the tenant blocklist. Requires opt_outs:write. Repeating this request is idempotent."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 or 200', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const optOut = pm.response.json().data;",
+                  "pm.test('Recipient is active on the blocklist', () => {",
+                  "  pm.expect(optOut.object).to.eql('opt_out');",
+                  "  pm.expect(optOut.active).to.eql(true);",
+                  "});",
+                  "pm.test('Cancelled messages are returned as an array', () => pm.expect(optOut.cancelled_message_ids).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

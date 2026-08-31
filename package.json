@@ -1,0 +1,45 @@
+{
+  "name": "nabda-api-saas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-tenant transactional messaging API SaaS",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "worker:dev": "tsx watch --env-file=.env src/worker.ts",
+    "start": "node dist/server.js",
+    "worker": "node dist/worker.js",
+    "db:migrate": "tsx --env-file=.env src/db/migrate.ts",
+    "db:migrate:prod": "node dist/db/migrate.js",
+    "db:seed": "tsx --env-file=.env src/db/seed.ts",
+    "db:free": "tsx --env-file=.env src/db/provision-free.ts",
+    "db:device-agent": "tsx --env-file=.env src/db/provision-device-agent.ts",
+    "android:build:simulation": "cd android-agent && ./gradlew --no-daemon testSimulationDebugUnitTest lintSimulationDebug assembleSimulationDebug",
+    "android:install:simulation": "sh scripts/install-android-simulation.sh",
+    "android:smoke:simulation": "node scripts/device-agent-smoke.mjs",
+    "smoke": "node scripts/smoke-test.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^13.0.0",
+    "@fontsource-variable/cairo": "^5.3.0",
+    "bullmq": "^5.0.0",
+    "fastify": "^5.0.0",
+    "ioredis": "^5.0.0",
+    "pg": "^8.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  }
+}

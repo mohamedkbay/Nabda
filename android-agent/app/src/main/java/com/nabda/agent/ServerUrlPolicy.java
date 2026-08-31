@@ -1,0 +1,69 @@
+package com.nabda.agent;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Locale;
+
+/** Keeps release traffic HTTPS-only and debug HTTP pinned to device loopback/emulator routing. */
+public final class ServerUrlPolicy {
+    private ServerUrlPolicy() {}
+
+    public static String normalize(String rawValue, boolean debugBuild) {
+        String raw = rawValue == null ? "" : rawValue.trim();
+        if (raw.isEmpty()) {
+            throw new IllegalArgumentException("Enter the server URL.");
+        }
+
+        final URI uri;
+        try {
+            uri = new URI(raw);
+        } catch (URISyntaxException error) {
+            throw new IllegalArgumentException("Enter a valid server URL.");
+        }
+
+        String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
+        String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+        if (host.isEmpty() || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null) {
+            throw new IllegalArgumentException("Use a server URL without credentials, query, or fragment.");
+        }
+
+        if (!"https".equals(scheme)) {
+            if (!debugBuild || !"http".equals(scheme) || !isAllowedDebugHttpHost(host)) {
+                throw new IllegalArgumentException(debugBuild
+                        ? "HTTP requires 127.x.x.x via adb reverse, ::1, or Android emulator host 10.0.2.2."
+                        : "Release builds require an HTTPS server URL.");
+            }
+        }
+
+        String normalized = uri.normalize().toString();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
+    static boolean isAllowedDebugHttpHost(String host) {
+        if ("::1".equals(host) || "[::1]".equals(host) || "10.0.2.2".equals(host)) {
+            return true;
+        }
+        String[] parts = host.split("\\.", -1);
+        if (parts.length != 4) {
+            return false;
+        }
+        int[] octets = new int[4];
+        for (int index = 0; index < parts.length; index++) {
+            if (parts[index].isEmpty() || !parts[index].matches("[0-9]{1,3}")) {
+                return false;
+            }
+            try {
+                octets[index] = Integer.parseInt(parts[index]);
+            } catch (NumberFormatException ignored) {
+                return false;
+            }
+            if (octets[index] < 0 || octets[index] > 255) {
+                return false;
+            }
+        }
+        return octets[0] == 127;
+    }
+}
