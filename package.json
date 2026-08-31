@@ -28,7 +28,7 @@
     "dev:desktop": "npm run build:desktop && electron .",
     "test:desktop": "vitest run tests/desktop-core.test.ts tests/desktop-backup-migration.test.ts tests/desktop-shell-security.test.ts",
     "dist:dir": "npm run build:desktop && electron-builder --dir",
-    "dist:win": "npm run test:desktop && npm run build:desktop && electron-builder --win nsis --x64",
+    "dist:win": "npm run test:desktop && npm run build:desktop && electron-builder --win nsis --x64 --publish never",
     "smoke": "node scripts/smoke-test.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
