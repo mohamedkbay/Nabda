@@ -4,7 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
 
-/** Keeps release traffic HTTPS-only and debug HTTP pinned to device loopback/emulator routing. */
+/** Pins Desktop traffic to literal RFC 1918 IPv4 addresses on the current LAN. */
 public final class ServerUrlPolicy {
     private ServerUrlPolicy() {}
 
@@ -27,12 +27,17 @@ public final class ServerUrlPolicy {
             throw new IllegalArgumentException("Use a server URL without credentials, query, or fragment.");
         }
 
-        if (!"https".equals(scheme)) {
-            if (!debugBuild || !"http".equals(scheme) || !isAllowedDebugHttpHost(host)) {
-                throw new IllegalArgumentException(debugBuild
-                        ? "HTTP requires 127.x.x.x via adb reverse, ::1, or Android emulator host 10.0.2.2."
-                        : "Release builds require an HTTPS server URL.");
-            }
+        if (!"http".equals(scheme)) {
+            throw new IllegalArgumentException("Use the local HTTP address shown by Nabda Desktop.");
+        }
+        if (!isPrivateIpv4(host)) {
+            throw new IllegalArgumentException("Use the private IPv4 address shown by Nabda Desktop (10.x, 172.16–31.x, or 192.168.x).");
+        }
+        if (uri.getPath() != null && !uri.getPath().isEmpty() && !"/".equals(uri.getPath())) {
+            throw new IllegalArgumentException("Use the Desktop address without an extra path.");
+        }
+        if (uri.getPort() <= 0 || uri.getPort() > 65535) {
+            throw new IllegalArgumentException("The Desktop port is invalid.");
         }
 
         String normalized = uri.normalize().toString();
@@ -42,10 +47,7 @@ public final class ServerUrlPolicy {
         return normalized;
     }
 
-    static boolean isAllowedDebugHttpHost(String host) {
-        if ("::1".equals(host) || "[::1]".equals(host) || "10.0.2.2".equals(host)) {
-            return true;
-        }
+    static boolean isPrivateIpv4(String host) {
         String[] parts = host.split("\\.", -1);
         if (parts.length != 4) {
             return false;
@@ -64,6 +66,8 @@ public final class ServerUrlPolicy {
                 return false;
             }
         }
-        return octets[0] == 127;
+        return octets[0] == 10
+                || (octets[0] == 172 && octets[1] >= 16 && octets[1] <= 31)
+                || (octets[0] == 192 && octets[1] == 168);
     }
 }

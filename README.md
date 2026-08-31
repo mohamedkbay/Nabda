@@ -2,10 +2,53 @@
 
 Nabda is a multi-tenant messaging API for expected transactional messages. An organization connects its own Android phone and SIM, creates scoped API keys, and sends messages through a queue with usage limits, opt-outs, idempotency, audit logs, and signed webhooks.
 
+The repository now contains two deliberately separate products:
+
+- **Nabda Desktop** — the primary local Windows application. It uses SQLite in the operating-system user-data directory and needs no Docker, PostgreSQL, or Redis.
+- **Nabda Server** — the original self-hosted API stack for organizations that need a network service. It remains isolated under `src/`, migrations, and Docker Compose.
+
 The platform is free to use within explicit fair-use limits. It does not promise unlimited SMS, and mobile-carrier charges are not included.
 
 > [!IMPORTANT]
 > Nabda currently runs in **Mock/Simulation mode by default**. The documented local setup cannot send carrier SMS. Live delivery requires a separate security, legal, carrier, and operational review.
+
+## Nabda Desktop quick start
+
+Requirements: Node.js 24 LTS, npm, and (only for Android builds) an Android SDK with Java 17.
+
+```bash
+npm ci
+npm run test:desktop
+npm run dev:desktop
+```
+
+The desktop application stores its SQLite database under Electron's per-user `app.getPath("userData")` directory. On Windows this is normally inside `%APPDATA%\Nabda Desktop`. Provider secrets are protected through Electron `safeStorage` and are never written to SQLite, renderer storage, backups, logs, or QR codes.
+
+Build an unpacked application for the current operating system:
+
+```bash
+npm run dist:dir
+```
+
+Build the Windows x64 NSIS installer on Windows:
+
+```bash
+npm run dist:win
+```
+
+The installer is written to `release/Nabda-Desktop-<version>-Setup-x64.exe`. The GitHub Actions workflow `Windows desktop build` performs the same locked install, tests, build, and artifact upload on a Windows runner.
+
+### Pair an Android phone locally
+
+1. Keep the Windows PC and phone on the same trusted private Wi-Fi network.
+2. Allow **Nabda Desktop** through Windows Firewall for **Private networks only**. Do not allow it on Public networks.
+3. Open **Devices** in Nabda Desktop and create a five-minute QR code.
+4. In the Simulation Android app, scan the QR, verify the short desktop identity and private IPv4 address, then confirm.
+5. Use **Test phone connection** to send a heartbeat only. It does not claim a message or send SMS.
+
+The QR contains a random one-time code, never the permanent device token. The code is stored as a hash, expires after five minutes, and is consumed once. The permanent token is returned to the phone once, encrypted by Android Keystore on the phone, and stored as a hash on Desktop. Revoke and pair again if either device or the LAN may be compromised.
+
+The local pairing endpoint intentionally binds to one detected RFC 1918 address instead of `0.0.0.0`. Pairing traffic is HTTP in this phase, so use a trusted LAN and verify the address shown on both devices. See [Desktop migration notes](docs/DESKTOP_MIGRATION.md) and [Android agent guide](android-agent/README.md).
 
 ## What is included
 

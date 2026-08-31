@@ -6,11 +6,9 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.os.BatteryManager;
 import android.os.IBinder;
 import android.net.Uri;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -79,45 +77,24 @@ public final class DeviceAgentService extends Service {
             try {
                 ApiClient api = new ApiClient(credentials.serverUrl, credentials.deviceToken);
                 if (System.currentTimeMillis() >= nextHeartbeatAt) {
-                    JSONObject heartbeatResponse = api.post("/v1/device/heartbeat", heartbeatBody());
+                    JSONObject heartbeatResponse = api.heartbeat(heartbeatBody());
                     delay = pollAfter(heartbeatResponse, delay);
                     nextHeartbeatAt = System.currentTimeMillis() + HEARTBEAT_MS;
                     updateNotification(getString(R.string.notification_connected));
+                    stateStore.markConnected("Heartbeat confirmed — no SMS sent");
                 }
-
-                if (retryPendingEvent(api)) {
-                    delay = 2_000;
-                } else if (resumePendingDispatch(api)) {
-                    delay = 2_000;
-                } else {
-                    JSONObject claimRequest = new JSONObject();
-                    claimRequest.put("limit", 1);
-                    claimRequest.put("simulated", BuildConfig.SIMULATION_ONLY);
-                    JSONObject response = api.post("/v1/device/messages/claim", claimRequest);
-                    delay = pollAfter(response, delay);
-                    JSONArray messages = response.optJSONArray("messages");
-                    if (messages == null) {
-                        throw new JSONException("Missing messages array");
-                    }
-                    if (messages.length() == 0) {
-                        stateStore.markConnected("Queue checked — nothing waiting");
-                    } else {
-                        ClaimedMessage message = ClaimedMessage.fromJson(messages.getJSONObject(0));
-                        persistNewDispatch(message);
-                        resumePendingDispatch(api);
-                        delay = 2_000;
-                    }
-                }
+                // Desktop-paired mode is intentionally heartbeat-only in this release.
+                // It does not call claim/begin/event routes and cannot trigger dispatch.
             } catch (ApiClient.ApiException error) {
                 if (error.isAuthenticationFailure()) {
                     stateStore.markRejected(error.getMessage());
                     stopSelf();
                     return;
                 }
-                stateStore.markWaiting("Waiting to reconnect", error.getMessage());
+                stateStore.markWaiting("Offline", error.getMessage());
                 delay = error.statusCode == 429 ? 30_000 : 15_000;
             } catch (Exception error) {
-                stateStore.markWaiting("Waiting to reconnect", safeMessage(error));
+                stateStore.markWaiting("Offline", safeMessage(error));
                 delay = 15_000;
             }
 
@@ -136,7 +113,7 @@ public final class DeviceAgentService extends Service {
         String messageId = pending.getString("message_id");
         JSONObject response;
         try {
-            response = api.post("/v1/device/messages/" + Uri.encode(messageId) + "/events", pending.getJSONObject("payload"));
+            response = api.post("/local/v1/device/messages/" + Uri.encode(messageId) + "/events", pending.getJSONObject("payload"));
         } catch (ApiClient.ApiException error) {
             if (error.isSafetyRejection()) {
                 secureSettings.clearPendingEvent();
@@ -186,7 +163,7 @@ public final class DeviceAgentService extends Service {
             begin.put("simulated", BuildConfig.SIMULATION_ONLY);
             final JSONObject beginResponse;
             try {
-                beginResponse = api.post("/v1/device/messages/" + Uri.encode(message.id) + "/begin", begin);
+                beginResponse = api.post("/local/v1/device/messages/" + Uri.encode(message.id) + "/begin", begin);
             } catch (ApiClient.ApiException error) {
                 if (error.isSafetyRejection() || error.statusCode == 429) {
                     secureSettings.clearPendingDispatch();
@@ -268,19 +245,13 @@ public final class DeviceAgentService extends Service {
     }
 
     private JSONObject heartbeatBody() throws JSONException {
-        BatteryManager battery = getSystemService(BatteryManager.class);
-        JSONObject body = new JSONObject();
-        body.put("app_version", BuildConfig.VERSION_NAME);
-        body.put("android_version", android.os.Build.VERSION.RELEASE);
-        body.put("simulated", BuildConfig.SIMULATION_ONLY);
-        if (battery != null) {
-            int level = battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-            if (level >= 0 && level <= 100) {
-                body.put("battery_level", level);
-            }
-            body.put("is_charging", battery.isCharging());
+        try {
+            return new JSONObject(LocalProtocol.heartbeat(
+                    secureSettings.getOrCreateInstallationId(),
+                    BuildConfig.VERSION_NAME));
+        } catch (Exception error) {
+            throw new JSONException("Could not load installation identity");
         }
-        return body;
     }
 
     private static long pollAfter(JSONObject response, long fallback) {

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f8f9" />
+    <title>نبضة — مركز الرسائل المحلي</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="brand" aria-label="نبضة"><span class="brand-mark" aria-hidden="true"><i data-lucide="message-square-text"></i></span><span><strong>نبضة</strong><small>مركز الرسائل المحلي</small></span></div>
+        <nav id="main-nav" aria-label="القائمة الرئيسية">
+          <button class="nav-item active" data-page="dashboard" aria-label="الرئيسية"><i data-lucide="house"></i><span>الرئيسية</span></button>
+          <button class="nav-item" data-page="customers" aria-label="العملاء"><i data-lucide="users-round"></i><span>العملاء</span></button>
+          <button class="nav-item" data-page="contacts" aria-label="جهات الاتصال"><i data-lucide="contact-round"></i><span>جهات الاتصال</span></button>
+          <button class="nav-item" data-page="messages" aria-label="الرسائل"><i data-lucide="messages-square"></i><span>الرسائل</span></button>
+          <button class="nav-item" data-page="devices" aria-label="الأجهزة"><i data-lucide="smartphone"></i><span>الأجهزة</span></button>
+          <button class="nav-item" data-page="settings" aria-label="الإعدادات"><i data-lucide="settings"></i><span>الإعدادات</span></button>
+          <button class="nav-item" data-page="backup" aria-label="النسخ الاحتياطي"><i data-lucide="database-backup"></i><span>النسخ الاحتياطي</span></button>
+        </nav>
+        <div class="header-status"><span class="pulse-dot" aria-hidden="true"></span><span><strong>محلي وآمن</strong><small>Mock مفعّل</small></span></div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <header class="page-header"><div><p class="eyebrow">NABDA DESKTOP</p><h1 id="page-title">لوحة التحكم</h1></div><button id="refresh-page" class="icon-button" aria-label="تحديث الصفحة" title="تحديث"><i data-lucide="refresh-cw"></i></button></header>
+
+      <section id="page-dashboard" class="page active" aria-labelledby="page-title">
+        <div class="dashboard-grid">
+          <article class="card summary-card">
+            <div class="card-heading"><div><span class="section-label">نظرة عامة</span><h2>مركز الرسائل</h2></div><span class="local-chip"><i data-lucide="hard-drive"></i> بيانات محلية</span></div>
+            <div class="summary-main"><strong id="metric-contacts">—</strong><span>جهة اتصال محفوظة</span><small>لا تغادر بياناتك اليومية هذا الكمبيوتر.</small></div>
+            <div class="summary-mini-grid"><div><strong id="metric-customers">—</strong><small>العملاء</small></div><div><strong id="metric-queued">—</strong><small>في الطابور</small></div><div><strong id="metric-devices">—</strong><small>أجهزة متصلة</small></div></div>
+          </article>
+          <article class="card start-card"><div class="start-icon"><i data-lucide="send-horizontal"></i></div><span class="section-label">اختبار آمن</span><h2>أنشئ رسالة محلية</h2><p>اختبر التحقق والطابور والأحداث باستخدام مزود Mock الافتراضي، من دون إرسال SMS حقيقية.</p><button class="primary-button" data-go="messages"><i data-lucide="plus"></i> رسالة جديدة</button></article>
+          <article class="card activity-card"><div class="card-heading"><div><span class="section-label">حركة الرسائل</span><h2>آخر النشاط</h2></div><button class="text-button" data-go="messages">السجل الكامل <i data-lucide="arrow-left"></i></button></div><div id="recent-messages" class="activity-list empty-state">لا توجد رسائل بعد.</div></article>
+          <article class="card safety-card"><div class="card-heading"><div><span class="section-label">سلامة التشغيل</span><h2>الحماية مفعّلة</h2></div><span class="safety-ring"><i data-lucide="shield-check"></i></span></div><ul><li><i data-lucide="check"></i> قائمة إيقاف قبل الطابور</li><li><i data-lucide="check"></i> المفاتيح خارج قاعدة البيانات</li><li><i data-lucide="check"></i> الاقتران على LAN فقط</li></ul></article>
+        </div>
+      </section>
+
+      <section id="page-customers" class="page">
+        <div class="page-intro"><div><span class="section-label">سجل محلي</span><h2>ملفات العملاء</h2><p>نظّم جهات الاتصال والرسائل تحت كل عميل.</p></div><button class="primary-button" data-dialog="customer-dialog"><i data-lucide="briefcase-business"></i> إضافة عميل</button></div>
+        <div class="card table-card"><div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>ملاحظات</th><th>تاريخ الإضافة</th></tr></thead><tbody id="customers-table"></tbody></table></div><div id="customers-empty" class="empty-state">لم تضف أي عميل بعد.</div></div>
+      </section>
+
+      <section id="page-contacts" class="page">
+        <div class="page-intro"><div><span class="section-label">دليل محلي</span><h2>جهات الاتصال</h2><p>أضف فقط المستلمين الذين يتوقعون تواصلك.</p></div><button class="primary-button" data-dialog="contact-dialog"><i data-lucide="user-round-plus"></i> إضافة جهة</button></div>
+        <div class="card table-card"><div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>العميل</th><th>الحالة</th><th><span class="sr-only">الإجراء</span></th></tr></thead><tbody id="contacts-table"></tbody></table></div><div id="contacts-empty" class="empty-state">لا توجد جهات اتصال.</div></div>
+      </section>
+
+      <section id="page-messages" class="page">
+        <div class="page-intro"><div><span class="section-label">الطابور المحلي</span><h2>الرسائل</h2><p>راجع الحالات والأحداث من دون كشف أسرار المزود.</p></div><button class="primary-button" data-dialog="message-dialog"><i data-lucide="send-horizontal"></i> رسالة جديدة</button></div>
+        <div class="notice safe"><i data-lucide="flask-conical"></i><div><strong>وضع Mock مفعّل</strong><span>إنشاء الرسائل هنا يختبر الطابور فقط ولا يرسل SMS حقيقية.</span></div></div>
+        <div class="card table-card"><div class="table-wrap"><table><thead><tr><th>المستلم</th><th>المحتوى</th><th>الحالة</th><th>وقت الإنشاء</th><th><span class="sr-only">الإجراء</span></th></tr></thead><tbody id="messages-table"></tbody></table></div><div id="messages-empty" class="empty-state">لا توجد رسائل.</div></div>
+      </section>
+
+      <section id="page-devices" class="page">
+        <div class="page-intro"><div><span class="section-label">الهاتف</span><h2>الأجهزة</h2><p>اربط Android على شبكة Wi‑Fi نفسها برمز لمرة واحدة.</p></div><button id="new-pairing" class="primary-button"><i data-lucide="qr-code"></i> إنشاء / تدوير الرمز</button></div>
+        <div class="device-layout">
+          <article class="card pairing-card"><div class="card-heading"><div><span class="section-label">اقتران محلي</span><h2>امسح الرمز من الهاتف</h2></div><span id="pairing-countdown" class="countdown">غير نشط</span></div><div id="pairing-empty" class="pairing-empty"><span class="empty-icon"><i data-lucide="smartphone"></i></span><strong>الهاتف والكمبيوتر على الشبكة نفسها</strong><p>أنشئ رمزًا جديدًا، ثم امسحه من تطبيق نبضة للهاتف.</p></div><div id="pairing-details" class="pairing-details hidden"><div class="qr-frame"><img id="pairing-qr" alt="رمز QR لاقتران الهاتف" /></div><div class="pairing-copy"><span>رمز لمرة واحدة</span><strong id="pairing-code" dir="ltr">—</strong><span>عنوان الكمبيوتر على LAN</span><code id="pairing-address" dir="ltr">—</code><button id="copy-pairing" class="secondary-button"><i data-lucide="copy"></i> نسخ الإدخال اليدوي</button><small><i data-lucide="triangle-alert"></i> الاتصال محلي وغير مشفّر في هذه المرحلة. استخدم شبكة موثوقة فقط؛ ينتهي الرمز خلال خمس دقائق.</small></div></div></article>
+          <article class="card devices-card"><div class="card-heading"><div><span class="section-label">الأجهزة المسجلة</span><h2>الحالة والاتصال</h2></div><span class="local-chip"><i data-lucide="wifi"></i> LAN</span></div><div id="devices-list" class="device-list empty-state">لا توجد أجهزة مرتبطة.</div></article>
+        </div>
+      </section>
+
+      <section id="page-settings" class="page">
+        <div class="page-intro"><div><span class="section-label">الإعدادات</span><h2>المزود والتشغيل</h2><p>يُشفّر المفتاح بنظام التشغيل ولا يُحفظ كنص واضح.</p></div></div>
+        <form id="settings-form" class="card settings-form">
+          <div class="form-section"><div><span class="section-icon"><i data-lucide="waypoints"></i></span><h3>مزود الرسائل</h3><p>ابقَ على Mock أثناء التطوير. اختبار الاتصال لا يرسل SMS.</p></div><div class="field-stack"><label>المزود<select id="provider" name="provider"><option value="mock">Mock · آمن للتجربة</option><option value="httpsms">مزود خارجي</option></select></label><label>عنوان المزود (اختياري)<input id="provider-endpoint" name="providerEndpoint" type="url" dir="ltr" autocomplete="off" placeholder="https://api.example.com" /></label></div></div>
+          <div class="form-section"><div><span class="section-icon"><i data-lucide="key-round"></i></span><h3>المفتاح السري</h3><p id="secret-status">لا يوجد مفتاح محفوظ.</p></div><div class="field-stack"><label>Secret / API key<div class="password-field"><input id="provider-secret" name="secret" type="password" dir="ltr" autocomplete="new-password" placeholder="اتركه فارغًا للاحتفاظ بالمحفوظ" /><button id="toggle-secret" type="button" aria-label="إظهار أو إخفاء المفتاح"><i data-lucide="eye"></i></button></div></label><label class="checkbox-line"><input id="clear-secret" type="checkbox" /> حذف المفتاح المحفوظ</label></div></div>
+          <div class="form-section"><div><span class="section-icon"><i data-lucide="cpu"></i></span><h3>خيارات محلية</h3><p>إعدادات التشغيل لا تحتوي أسرارًا.</p></div><div class="field-stack"><label>اسم المرسل الداخلي<input id="sender-label" name="senderLabel" maxlength="50" /></label><label class="checkbox-line"><input id="worker-on-launch" type="checkbox" /> تشغيل العامل المحلي عند فتح التطبيق</label></div></div>
+          <div class="form-actions"><button id="test-provider" type="button" class="secondary-button"><i data-lucide="plug-zap"></i> اختبار الاتصال فقط</button><button type="submit" class="primary-button"><i data-lucide="save"></i> حفظ الإعدادات</button></div><div id="provider-test-result" class="inline-result hidden" role="status"></div>
+        </form>
+      </section>
+
+      <section id="page-backup" class="page">
+        <div class="page-intro"><div><span class="section-label">النسخ الاحتياطي</span><h2>حماية بياناتك المحلية</h2><p>صدّر ملفًا احتياطيًا واستعده بعد التحقق قبل الاستبدال.</p></div></div>
+        <div class="backup-grid"><article class="card backup-card"><span class="backup-icon"><i data-lucide="database-backup"></i></span><span class="section-label">نسخة محلية</span><h2>تصدير نسخة</h2><p>تشمل قاعدة البيانات والإعدادات غير السرية. مفتاح المزود غير مشمول.</p><button id="export-backup" class="primary-button"><i data-lucide="download"></i> اختيار مكان الحفظ</button></article><article class="card backup-card warning"><span class="backup-icon"><i data-lucide="database-zap"></i></span><span class="section-label">استعادة آمنة</span><h2>استيراد نسخة</h2><p>يتحقق التطبيق من الملف أولًا ثم يطلب تأكيدك قبل استبدال البيانات.</p><button id="import-backup" class="secondary-button"><i data-lucide="upload"></i> اختيار ملف للاستيراد</button></article></div>
+      </section>
+    </main>
+
+    <dialog id="customer-dialog"><form id="customer-form" method="dialog"><div class="dialog-heading"><div><span class="section-label">عميل جديد</span><h2>إضافة ملف عميل</h2></div><button class="dialog-close" value="cancel" aria-label="إغلاق"><i data-lucide="x"></i></button></div><label>اسم العميل<input name="name" required maxlength="200" autofocus /></label><label>رقم الهاتف (اختياري)<input name="phone" dir="ltr" maxlength="32" /></label><label>ملاحظات<textarea name="notes" maxlength="500" rows="3"></textarea></label><div class="dialog-actions"><button value="cancel" class="secondary-button">إلغاء</button><button id="submit-customer" type="button" class="primary-button"><i data-lucide="save"></i> حفظ العميل</button></div></form></dialog>
+    <dialog id="contact-dialog"><form id="contact-form" method="dialog"><div class="dialog-heading"><div><span class="section-label">جهة جديدة</span><h2>إضافة جهة اتصال</h2></div><button class="dialog-close" value="cancel" aria-label="إغلاق"><i data-lucide="x"></i></button></div><label>الاسم<input name="name" required maxlength="200" /></label><label>رقم الهاتف<input name="phone" dir="ltr" required maxlength="32" /></label><label>العميل<select name="customerId" id="contact-customer"><option value="">بدون عميل</option></select></label><label class="consent-box"><input name="consent" type="checkbox" required /> أؤكد أن هذا المستلم يتوقع هذه الرسائل.</label><div class="dialog-actions"><button value="cancel" class="secondary-button">إلغاء</button><button id="submit-contact" type="button" class="primary-button"><i data-lucide="user-round-plus"></i> حفظ جهة الاتصال</button></div></form></dialog>
+    <dialog id="message-dialog"><form id="message-form" method="dialog"><div class="dialog-heading"><div><span class="section-label">رسالة محلية</span><h2>إضافة إلى الطابور</h2></div><button class="dialog-close" value="cancel" aria-label="إغلاق"><i data-lucide="x"></i></button></div><label>جهة الاتصال<select name="contactId" id="message-contact"><option value="">إدخال رقم يدوي</option></select></label><label>رقم المستلم<input name="to" id="message-to" dir="ltr" required maxlength="32" /></label><label>نص الرسالة<textarea name="body" required maxlength="1600" rows="5"></textarea></label><label class="consent-box"><input name="consent" type="checkbox" required /> أؤكد أن الرسالة متوقعة من هذا المستلم.</label><div class="notice compact"><i data-lucide="flask-conical"></i> لن تُرسل SMS حقيقية ما دام مزود Mock مفعّلًا.</div><div class="dialog-actions"><button value="cancel" class="secondary-button">إلغاء</button><button id="submit-message" type="button" class="primary-button"><i data-lucide="list-plus"></i> إضافة للطابور</button></div></form></dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./vendor/lucide.js" defer></script><script src="./app.js" defer></script>
+  </body>
+</html>

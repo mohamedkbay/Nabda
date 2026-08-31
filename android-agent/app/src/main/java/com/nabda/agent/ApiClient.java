@@ -67,6 +67,11 @@ public final class ApiClient {
         }
     }
 
+    /** Connectivity-only probe. It never claims or dispatches a message. */
+    public JSONObject heartbeat(JSONObject request) throws ApiException {
+        return post(LocalProtocol.HEARTBEAT_PATH, request);
+    }
+
     private static String readLimited(InputStream input) throws IOException {
         try (InputStream stream = input; ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[4096];

@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.util.UUID;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -25,6 +26,7 @@ public final class SecureSettings {
     private static final String CREDENTIALS_KEY = "credentials";
     private static final String PENDING_DISPATCH_KEY = "pending_dispatch";
     private static final String PENDING_EVENT_KEY = "pending_event";
+    private static final String INSTALLATION_ID_KEY = "installation_id";
 
     private final SharedPreferences preferences;
 
@@ -32,11 +34,29 @@ public final class SecureSettings {
         preferences = context.getApplicationContext().getSharedPreferences(STORE_NAME, Context.MODE_PRIVATE);
     }
 
-    public synchronized void saveCredentials(String serverUrl, String deviceToken) throws Exception {
+    public synchronized void saveCredentials(String serverUrl, String deviceId, String deviceToken) throws Exception {
         JSONObject value = new JSONObject();
         value.put("server_url", serverUrl);
+        value.put("device_id", deviceId);
         value.put("device_token", deviceToken);
         preferences.edit().putString(CREDENTIALS_KEY, encrypt(value.toString())).apply();
+    }
+
+    public synchronized String getOrCreateInstallationId() throws Exception {
+        String encrypted = preferences.getString(INSTALLATION_ID_KEY, null);
+        if (encrypted != null) {
+            try {
+                String existing = decrypt(encrypted);
+                if (existing.matches("[0-9a-f-]{36}")) {
+                    return existing;
+                }
+            } catch (Exception ignored) {
+                // Replace a corrupt identifier without exposing it.
+            }
+        }
+        String created = UUID.randomUUID().toString();
+        preferences.edit().putString(INSTALLATION_ID_KEY, encrypt(created)).commit();
+        return created;
     }
 
     public synchronized Credentials loadCredentials() {
@@ -46,7 +66,7 @@ public final class SecureSettings {
         }
         try {
             JSONObject value = new JSONObject(decrypt(encrypted));
-            return new Credentials(value.optString("server_url"), value.optString("device_token"));
+            return new Credentials(value.optString("server_url"), value.optString("device_id"), value.optString("device_token"));
         } catch (Exception ignored) {
             return Credentials.empty();
         }
@@ -134,15 +154,17 @@ public final class SecureSettings {
 
     public static final class Credentials {
         public final String serverUrl;
+        public final String deviceId;
         public final String deviceToken;
 
-        Credentials(String serverUrl, String deviceToken) {
+        Credentials(String serverUrl, String deviceId, String deviceToken) {
             this.serverUrl = serverUrl == null ? "" : serverUrl;
+            this.deviceId = deviceId == null ? "" : deviceId;
             this.deviceToken = deviceToken == null ? "" : deviceToken;
         }
 
         static Credentials empty() {
-            return new Credentials("", "");
+            return new Credentials("", "", "");
         }
 
         public boolean isComplete() {

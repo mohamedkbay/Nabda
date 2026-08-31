@@ -68,25 +68,56 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="@string/device_token_label"
+            android:text="@string/pairing_secret_label"
             android:textColor="@color/ink"
             android:textSize="13sp"
             android:textStyle="bold" />
 
         <EditText
-            android:id="@+id/deviceTokenInput"
+            android:id="@+id/pairingCodeInput"
             android:layout_width="match_parent"
             android:layout_height="54dp"
             android:layout_marginTop="8dp"
             android:autofillHints="password"
             android:background="@drawable/field_background"
-            android:hint="@string/device_token_hint"
+            android:hint="@string/pairing_secret_hint"
             android:imeOptions="actionDone"
             android:inputType="textPassword"
             android:maxLines="1"
+            android:saveEnabled="false"
             android:textColor="@color/ink"
             android:textColorHint="@color/muted"
             android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/scanQrButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="14dp"
+            android:text="@string/scan_qr"
+            android:textAllCaps="false"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/pairButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_background"
+            android:text="@string/pair_phone"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/pairedDeviceText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/no_pairing_saved"
+            android:textColor="@color/muted"
+            android:textSize="12sp" />
 
         <CheckBox
             android:id="@+id/liveConsent"
@@ -102,13 +133,22 @@
             android:id="@+id/connectButton"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="18dp"
             android:background="@drawable/button_background"
             android:text="@string/connect_start"
             android:textAllCaps="false"
             android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/testHeartbeatButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:text="@string/test_phone_connection"
+            android:textAllCaps="false"
+            android:textSize="14sp" />
 
         <LinearLayout
             android:layout_width="match_parent"

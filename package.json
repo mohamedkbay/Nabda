@@ -2,8 +2,10 @@
   "name": "nabda-api-saas",
   "version": "0.1.0",
   "private": true,
+  "author": "Nabda Project",
   "description": "Multi-tenant transactional messaging API SaaS",
   "type": "module",
+  "main": "desktop-dist/main.js",
   "engines": {
     "node": ">=22"
   },
@@ -23,6 +25,11 @@
     "android:build:simulation": "cd android-agent && ./gradlew --no-daemon testSimulationDebugUnitTest lintSimulationDebug assembleSimulationDebug",
     "android:install:simulation": "sh scripts/install-android-simulation.sh",
     "android:smoke:simulation": "node scripts/device-agent-smoke.mjs",
+    "build:desktop": "tsc -p tsconfig.desktop.json && node scripts/copy-desktop-assets.mjs",
+    "dev:desktop": "npm run build:desktop && electron .",
+    "test:desktop": "vitest run tests/desktop*.test.ts",
+    "dist:dir": "npm run build:desktop && electron-builder --dir",
+    "dist:win": "npm run test:desktop && npm run build:desktop && electron-builder --win nsis --x64",
     "smoke": "node scripts/smoke-test.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -34,13 +41,49 @@
     "fastify": "^5.0.0",
     "ioredis": "^5.0.0",
     "pg": "^8.0.0",
+    "qrcode": "^1.5.4",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/pg": "^8.0.0",
+    "@types/qrcode": "^1.5.6",
+    "electron": "^44.1.0",
+    "electron-builder": "^26.15.3",
     "tsx": "^4.0.0",
     "typescript": "^5.9.0",
     "vitest": "^4.0.0"
+  },
+  "build": {
+    "appId": "com.nabda.desktop",
+    "productName": "Nabda Desktop",
+    "icon": "build/icon.png",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "desktop-dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Nabda-Desktop-${version}-Setup-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
+    }
   }
 }

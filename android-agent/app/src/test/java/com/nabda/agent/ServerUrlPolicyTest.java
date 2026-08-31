@@ -6,54 +6,35 @@ import static org.junit.Assert.fail;
 import org.junit.Test;
 
 public final class ServerUrlPolicyTest {
-    @Test
-    public void releaseAcceptsHttpsAndStripsTrailingSlash() {
-        assertEquals("https://api.example.com", ServerUrlPolicy.normalize(" https://api.example.com/ ", false));
+    @Test public void acceptsOnlyPrivateIpv4LanRanges() {
+        assertEquals("http://10.1.2.3:47831", ServerUrlPolicy.normalize(" http://10.1.2.3:47831/ ", false));
+        assertEquals("http://172.16.4.5:47831", ServerUrlPolicy.normalize("http://172.16.4.5:47831", false));
+        assertEquals("http://172.31.255.254:47831", ServerUrlPolicy.normalize("http://172.31.255.254:47831", true));
+        assertEquals("http://192.168.1.20:47831", ServerUrlPolicy.normalize("http://192.168.1.20:47831", false));
     }
 
-    @Test
-    public void releaseRejectsHttp() {
-        expectRejected("http://192.168.1.20:3000", false);
+    @Test public void rejectsPublicLoopbackLinkLocalAndHostnameTargets() {
+        expectRejected("http://8.8.8.8:47831");
+        expectRejected("http://127.0.0.1:47831");
+        expectRejected("http://169.254.1.2:47831");
+        expectRejected("http://localhost:47831");
+        expectRejected("http://desktop.local:47831");
+        expectRejected("http://172.15.1.2:47831");
+        expectRejected("http://172.32.1.2:47831");
     }
 
-    @Test
-    public void debugAllowsOnlyLoopbackAndEmulatorGatewayHttp() {
-        assertEquals("http://10.0.2.2:3000", ServerUrlPolicy.normalize("http://10.0.2.2:3000/", true));
-        assertEquals("http://127.0.0.1:3000", ServerUrlPolicy.normalize("http://127.0.0.1:3000/", true));
-        assertEquals("http://127.42.9.8:3000", ServerUrlPolicy.normalize("http://127.42.9.8:3000", true));
-        assertEquals("http://[::1]:3000", ServerUrlPolicy.normalize("http://[::1]:3000/", true));
+    @Test public void rejectsHttpsMissingPortCredentialsPathsQueryAndFragments() {
+        expectRejected("https://192.168.1.20:47831");
+        expectRejected("http://192.168.1.20");
+        expectRejected("http://user:secret@192.168.1.20:47831");
+        expectRejected("http://192.168.1.20:47831/api");
+        expectRejected("http://192.168.1.20:47831?secret=x");
+        expectRejected("http://192.168.1.20:47831/#fragment");
     }
 
-    @Test
-    public void debugRejectsLanLocalNamesPublicHttpAndEmbeddedCredentials() {
-        expectRejected("http://192.168.1.20:3000", true);
-        expectRejected("http://10.0.0.1:3000", true);
-        expectRejected("http://10.1.2.3:3000", true);
-        expectRejected("http://172.16.0.1:3000", true);
-        expectRejected("http://172.31.4.5:3000", true);
-        expectRejected("http://phone.local:3000", true);
-        expectRejected("http://localhost:3000", true);
-        expectRejected("http://example.com", true);
-        expectRejected("https://token@example.com", true);
-    }
-
-    @Test
-    public void debugRejectsLookalikeAndMalformedLoopbackHosts() {
-        expectRejected("http://127.example.com:3000", true);
-        expectRejected("http://127.0.0.1.example.com:3000", true);
-        expectRejected("http://127.0.0.999:3000", true);
-        expectRejected("http://10.0.2.20:3000", true);
-    }
-
-    @Test
-    public void rejectsQueryAndFragment() {
-        expectRejected("https://api.example.com?secret=x", false);
-        expectRejected("https://api.example.com/#section", false);
-    }
-
-    private static void expectRejected(String value, boolean debug) {
+    private static void expectRejected(String value) {
         try {
-            ServerUrlPolicy.normalize(value, debug);
+            ServerUrlPolicy.normalize(value, false);
             fail("Expected URL to be rejected: " + value);
         } catch (IllegalArgumentException expected) {
             // Expected.

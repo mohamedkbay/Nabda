@@ -34,17 +34,26 @@ public final class AgentStateStore {
     }
 
     public void markStopped() {
-        update(false, "Not connected", "Stopped");
+        update(false, "Offline", "Agent stopped");
     }
 
     public void markRejected(String message) {
-        update(false, "Connection rejected", message);
+        update(false, "Offline", message);
+    }
+
+    public void markOffline(String message) {
+        update(false, "Offline", message);
+    }
+
+    public void recordConnectionTest(boolean connected, String activity) {
+        Snapshot current = snapshot();
+        update(current.running, connected ? "Connected" : "Offline", activity);
     }
 
     public Snapshot snapshot() {
         return new Snapshot(
                 preferences.getBoolean(RUNNING, false),
-                preferences.getString(STATUS, "Not connected"),
+                preferences.getString(STATUS, "Offline"),
                 preferences.getString(LAST_ACTIVITY, "Nothing yet"));
     }
 
