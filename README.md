@@ -1,88 +1,95 @@
-# نبضة API SaaS
+# Nabda API SaaS
 
-«نبضة» منصة متعددة العملاء لإرسال رسائل معاملات مشروعة من هاتف Android وشريحة تملكهما الشركة. يحصل كل عميل على مفتاح API خاص بمنظمته، بينما تبقى بيانات مزود الهاتف داخل الخادم ولا تصل إلى تطبيق العميل.
+Nabda is a multi-tenant messaging API for expected transactional messages. An organization connects its own Android phone and SIM, creates scoped API keys, and sends messages through a queue with usage limits, opt-outs, idempotency, audit logs, and signed webhooks.
 
-الاشتراك هو مقابل استخدام المنصة ضمن حصة واضحة ومعدل إرسال محدد؛ لا يَعِد النظام برسائل غير محدودة. الرسائل الإعلانية غير المرغوبة ممنوعة، ويجب أن يكون المستلم قد وافق على الرسالة أو يتوقعها ضمن معاملة مشروعة.
+The platform is free to use within explicit fair-use limits. It does not promise unlimited SMS, and mobile-carrier charges are not included.
 
-## ما تتضمنه المرحلة الأولى
+> [!IMPORTANT]
+> Nabda currently runs in **Mock/Simulation mode by default**. The documented local setup cannot send carrier SMS. Live delivery requires a separate security, legal, carrier, and operational review.
 
-- API مبني بـTypeScript وFastify.
-- PostgreSQL للبيانات الدائمة وعزل المؤسسات.
-- Redis وBullMQ للمهام الخلفية ومعدل الإرسال.
-- مفاتيح API لا يُخزن منها إلا HMAC hash.
-- إنشاء رسالة مع `Idempotency-Key`، قراءة حالتها، وقراءة الاستخدام.
-- حفظ جهات الاتصال وتحديثها ذريًا حسب الرقم ضمن حد الخطة، مع حذف بيانات الصف والإبقاء على واقعة التدقيق فقط.
-- ملخص للطابور يوضح الجاهز والمجدول وقيد التنفيذ.
-- حصة اشتراك، rate limit، وقائمة إيقاف يعاد فحصها قبل الإرسال داخل العامل.
-- حد dispatch موزع لكل مؤسسة مشتق من خطتها، مع فاصل عالمي محافظ يمنع burst عند استئناف العامل.
-- مزود Mock افتراضي لا يتصل بأي خدمة خارجية.
-- adapter اختياري لمزود الهاتف، خلف حاجز أمان صريح ودون كشف مفتاحه للعميل.
-- webhooks موقعة بـHMAC، وسجل أحداث وتدقيق.
-- مصالحة دورية لحالة المزود تنقل الرسائل المقبولة لاحقًا إلى `delivered` أو حالة نهائية مناسبة.
-- تنظيف دوري ينقّح محتوى الرسائل الحساسة بعد مدة احتفاظ الخطة دون حذف الحالة أو الأحداث أو التدقيق.
+## What is included
 
-الحالات العامة للرسالة هي:
+- TypeScript and Fastify API
+- PostgreSQL as the durable source of truth
+- Redis and BullMQ for rate limiting and background jobs
+- Organization-level tenant isolation
+- API keys stored as keyed HMAC digests, never as plaintext
+- Idempotent message creation with `Idempotency-Key`
+- Subscription quota and per-minute limits
+- Contacts, consent references, and organization-scoped opt-outs
+- Message queue, worker, outbox recovery, and status reconciliation
+- Signed HMAC webhooks with retries and endpoint circuit breaking
+- Mock provider enabled by default
+- External provider adapter isolated behind explicit live-send gates
+- Lightweight native Android agent with a safe Simulation build
+- Automatic redaction of old sensitive message data
+- English-first marketing site, API reference, and searchable Help Center
 
-| الحالة | المعنى |
-|---|---|
-| `queued` | قبل تسليمها إلى مزود الهاتف |
-| `sent` | قبل مزود الهاتف عملية الإرسال |
-| `delivered` | تأكد التسليم |
-| `failed` | فشل دائم أو نتيجة غير قابلة لإعادة المحاولة بأمان |
-| `expired` | انتهت صلاحية الرسالة قبل إتمامها |
-| `cancelled` | ألغيت قبل الإرسال، ومنها الإلغاء بسبب قائمة الإيقاف |
-
-## الموقع الرسمي وHelp Center
-
-تُقدَّم الواجهة الإنجليزية افتراضيًا من نفس خدمة API على:
+## Architecture
 
 ```text
-http://localhost:3000/
+API client
+    │
+    ▼
+Fastify API ─────► PostgreSQL
+    │                 │
+    │                 └── tenants, keys, messages, usage,
+    │                     contacts, opt-outs, events, audit
+    ▼
+Redis / BullMQ
+    │
+    ▼
+Worker ──────────► Mock provider (default)
+    │
+    ├────────────► external provider adapter (live-gated)
+    ├────────────► signed webhooks
+    └────────────► retention and reconciliation jobs
+
+Android agent ◄──── short leases and device-scoped credentials
 ```
 
-الموقع متعدد الصفحات، وكل عنصر في القائمة العلوية يفتح صفحة مستقلة:
+Message states:
 
-- `/integration` لشرح الاتصال بالجهاز وتدفق الرسالة.
-- `/api` لعقد API والمصادقة والحالات.
-- `/webhooks` للتوقيع والأحداث وإعادة المحاولة.
-- `/pricing` لحدود الخطط وتجربة الخمس رسائل.
-- `/get-started` لمسار البدء العملي.
-- `/help` لمركز مساعدة كامل يشمل installation وtesting ومرجع endpoints.
+| State | Meaning |
+| --- | --- |
+| `queued` | Accepted and waiting for dispatch |
+| `sent` | Accepted by the phone or provider |
+| `delivered` | Delivery was confirmed |
+| `failed` | Permanently failed or unsafe to retry |
+| `expired` | Expired before completion |
+| `cancelled` | Cancelled before dispatch, including opt-out cancellation |
 
-التصميم متجاوب مع سطح المكتب والهاتف. الإنجليزية هي اللغة الرئيسية، ويمكن التحويل إلى العربية من أعلى الصفحة؛ يحفظ المتصفح الاختيار ويبدّل اتجاه الصفحة بين LTR وRTL. يستخدم الموقع خط Cairo المستضاف محليًا، ولا يعتمد على CDN أو خدمة خطوط خارجية.
+## Requirements
 
-كل الحالات والأرقام الظاهرة في الواجهة بيانات توضيحية فقط؛ لا تنفذ الواجهة إرسالًا ولا تحتوي مفتاح API. جميع CSS وJavaScript والخطوط محلية، وتطبق الخدمة Content Security Policy مقيدة بالمصدر نفسه.
+- Docker with Docker Compose, or Node.js 22+ and local PostgreSQL/Redis
+- Node.js 24 LTS is recommended for direct local development
+- No external SMS-provider key is required for development
 
-يمكن تنزيل عقد OpenAPI ومجموعة اختبار متوافقة مع Postman مباشرة من:
+Default local ports:
 
-```text
-http://localhost:3000/openapi.yaml
-http://localhost:3000/downloads/nabda-api.postman_collection.json
-http://localhost:3000/downloads/nabda-local.postman_environment.json
+| Service | Address |
+| --- | --- |
+| Website and API | `http://127.0.0.1:3000` |
+| PostgreSQL | `127.0.0.1:5432` |
+| Redis | `127.0.0.1:6379` |
+
+## Quick start with Docker
+
+Clone the project and enter its directory:
+
+```bash
+git clone git@github.com:mohamedkbay/nabda.git
+cd nabda
 ```
 
-قيمة `api_key` في ملف البيئة فارغة ومعلّمة كسر؛ لا يحتوي أي ملف منشور على مفتاح فعلي.
-
-للتجربة في Postman: نزّل ملفي collection وenvironment، استوردهما، اختر بيئة `Nabda Local (Mock only)`، ثم ألصق مفتاح التجربة في متغير `api_key` المحلي. تحتوي الطلبات أمثلة واختبارات للاستجابات، وتمنع collection التشغيل على عنوان غير `localhost` أو `127.0.0.1` حتى لا تستخدم مفتاح التطوير مع مضيف خارجي بالخطأ. صفحة `/help` تقدم التعليمات نفسها بشكل قابل للبحث، مع أزرار نسخ وفهرس وروابط مباشرة لكل endpoint.
-
-## متطلبات التشغيل
-
-- Docker حديث مع Docker Compose، أو Node.js 22 فأحدث (يفضل Node.js 24 LTS).
-- لا تحتاج إلى مفتاح أي مزود خارجي للتطوير.
-- المنافذ الافتراضية: API على `3000`، PostgreSQL على `5432`، وRedis على `6379`.
-
-`DB_POOL_MAX` يحدد حجم pool لكل عملية (القيمة المحلية `10`). يشتق العامل توازي dispatch منه ويحتفظ بسعة لعمليات outbox ومصالحة الحالة؛ عند زيادة عدد النسخ يجب حساب مجموع الاتصالات مقابل حد PostgreSQL أو استخدام pooler مناسب.
-
-## التشغيل السريع باستخدام Docker
-
-من داخل مجلد المشروع:
+Create the local environment file:
 
 ```bash
 cp .env.example .env
 chmod 600 .env
 ```
 
-ولّد ثلاث قيم محلية مختلفة، ثم ضعها في `.env`:
+Generate three different development secrets:
 
 ```bash
 openssl rand -hex 24
@@ -90,161 +97,89 @@ openssl rand -base64 48
 openssl rand -base64 32
 ```
 
-استخدم المخرجات بالترتيب لقيم:
+Place the generated values in `.env`:
 
 ```dotenv
-POSTGRES_PASSWORD=<ناتج-hex>
-API_KEY_HASH_SECRET=<ناتج-base64-48>
-APP_ENCRYPTION_KEY=<ناتج-base64-32>
+POSTGRES_PASSWORD=<hex-output>
+API_KEY_HASH_SECRET=<base64-48-output>
+APP_ENCRYPTION_KEY=<base64-32-output>
 ```
 
-يجب أن يفك `APP_ENCRYPTION_KEY` إلى 32 بايت بالضبط. يحصر `chmod 600` قراءة الملف في مالكه؛ لا ترفع ملف `.env` إلى Git ولا تستخدم قيم الإنتاج محليًا.
+`APP_ENCRYPTION_KEY` must decode to exactly 32 bytes. Never commit `.env`, and never reuse production secrets in development.
 
-شغّل الخدمات في الخلفية:
+Start the complete local stack:
 
 ```bash
 docker compose up --build -d
 ```
 
-تحقق من حالتها واقرأ السجلات عند الحاجة:
-
-```bash
-docker compose ps -a
-docker compose logs --tail=100 api worker migrate
-```
-
-تنتظر Compose جاهزية PostgreSQL وRedis، ثم تطبق migrations قبل تشغيل API والعامل. بيئة Compose تفرض القيمتين التاليتين مهما كان محتوى `.env`:
+Compose waits for PostgreSQL and Redis, applies all migrations, then starts the API and worker. The development configuration forces:
 
 ```dotenv
 PROVIDER_MODE=mock
 ENABLE_LIVE_SMS=false
+ENABLE_ANDROID_AGENT_LIVE_REPORTING=false
 ```
 
-لذلك لا يمكن لهذا المسار إرسال SMS حقيقية.
-
-كحاجز ثانٍ، يرفض التطبيق تهيئة adapter الخارجي ما لم تكن البيئة `production` **ومعها** `ENABLE_LIVE_SMS=true` صراحة. لا توجد في هذا الدليل خطوة لتفعيل الإرسال الحقيقي.
-
-لإنشاء مساحة محلية على الخطة المجانية الدائمة ومفتاح اختبار، في نافذة أخرى:
+Create or rotate a local organization and API key on the permanent Free plan:
 
 ```bash
 docker compose run --rm migrate npm run db:free
 ```
 
-احتفظ بالمفتاح الذي يعرضه الأمر؛ يظهر السر الخام مرة واحدة فقط، بينما تحفظ قاعدة البيانات hash غير قابل للاسترجاع. الخطة بلا تاريخ انتهاء وتوفر 1000 عملية رسالة مقبولة شهريًا وحدًا قدره 10 عمليات في الدقيقة، مع جهاز واحد و3 مفاتيح API وWebhook اثنين و500 جهة اتصال. إعادة تشغيل الأمر تدوّر المفتاح المحلي ولا تصفّر استخدام الشهر نفسه. مجانية المنصة **لا تشمل رصيد الشريحة أو رسوم شركة الاتصالات** وليست وعدًا برسائل غير محدودة. يعمل هذا المسار على Mock ولا يرسل SMS فعلية.
+Copy the displayed API key immediately. The raw value is shown once; only its non-reversible digest is stored.
 
-يبقى `npm run db:seed` متاحًا كبيانات تطوير موسعة لاختبارات الفريق الداخلية، ويستخدم حدود الخطة المجانية نفسها.
-
-اختبر الصحة:
+Check the stack:
 
 ```bash
-curl http://localhost:3000/health
-curl http://localhost:3000/health/ready
+curl http://127.0.0.1:3000/health
+curl http://127.0.0.1:3000/health/ready
+docker compose ps
 ```
 
-ثم افتح `http://localhost:3000/` لمشاهدة الواجهة.
+Expected health output:
 
-## ربط تطبيق Android الخفيف
-
-توجد نسخة Android مستقلة في `android-agent/` مبنية بـJava وAndroid SDK فقط؛ لا تستخدم Flutter أو React Native أو Compose أو مكتبات runtime خارجية. الشاشة خطوة واحدة: عنوان الخادم، Device token، ثم **Connect & start**.
-
-نسخة التطوير المعتمدة هي **Simulation**: لا يحتوي ملفها على إذن `SEND_SMS` ولا على استدعاء `SmsManager`، لذلك تختبر الطابور والربط وتحديث الحالة دون إرسال رسالة هاتف أو استهلاك رصيد الشريحة.
-
-بعد تشغيل Compose وإنشاء مساحة `local-free`، أنشئ أو دوّر Device token:
-
-```bash
-docker compose run --rm migrate npm run db:device-agent
+```json
+{"status":"ok","provider_mode":"mock"}
+{"status":"ready"}
 ```
 
-يظهر الـtoken الخام مرة واحدة فقط؛ تحفظ قاعدة البيانات prefix وHMAC hash ولا تحفظ السر نفسه. لا تستخدم API Key الخاص بالمؤسسة داخل الهاتف.
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000) for the product site.
 
-يرتبط كل Device token على الخادم بوضع ثابت (`simulation` أو `live`)، وترتبط كل رسالة بالوضع الذي قُبلت فيه. لا يستطيع الهاتف تغيير الوضع بإرسال `simulated=false`، ولا يستطيع worker حي التقاط رسالة اختبار قديمة. يبقى `DEVICE_AGENT_MODE=simulation` هو الافتراضي الآمن. إنشاء اعتماد حي يتطلب، إضافة إلى إعدادات الإنتاج الحية، تأكيدًا ثانيًا صريحًا قبل تشغيل أمر provisioning:
+## Free plan
 
-```dotenv
-DEVICE_AGENT_MODE=live
-CONFIRM_LIVE_DEVICE_AGENT_PROVISION=PROVISION_LIVE_ANDROID_AGENT
-```
+The local Free plan has no expiration date and currently includes:
 
-لا تستخدم هذين السطرين في التطوير أو مع APK المحاكاة. أي نتيجة حية غير مؤكدة بعد restart أو فشل Android توضع في `manual_review` ولا يعاد إرسالها آليًا.
+- 1,000 accepted message operations per month
+- 10 accepted operations per minute
+- 1 Android device
+- 3 API keys
+- 2 webhooks
+- 500 active contacts
+- 30-day sensitive-data retention window
 
-على هاتف Android واحد، فعّل Developer options وUSB debugging، افتح قفل الهاتف، وصله بالـMac واقبل رسالة الثقة. ثم نفّذ:
+An idempotent replay does not consume another operation. Rejected requests do not consume usage. Later cancellation does not restore an accepted operation.
 
-```bash
-export ANDROID_SDK_ROOT=/Users/mohamedbay/.android-sdk
-npm run android:install:simulation
-```
+Platform access is free; SIM credit, carrier fees, data service, phones, and infrastructure are the operator's responsibility.
 
-يتحقق الأمر من وجود هاتف واحد، ينشئ نفق USB آمنًا بـ`adb reverse`، يثبت APK ويفتحه. داخل التطبيق أدخل:
+## Send a Mock message
 
-```text
-Server URL: http://127.0.0.1:3000
-Device token: <القيمة التي ظهرت مرة واحدة>
-```
-
-ثم اضغط **Connect & start**. يجب أن تصبح الحالة `Connected`. ملف APK الناتج محليًا ونسخة التسليم الثابتة هما:
-
-```text
-android-agent/app/build/outputs/apk/simulation/debug/app-simulation-debug.apk
-android-agent/artifacts/Nabda-Agent-Simulation-0.1.0.apk
-```
-
-لا يفتح هذا المسار منفذ API على Wi-Fi؛ يبقى Compose مربوطًا بـ`127.0.0.1`. كما تفرض بيئة التطوير `ENABLE_ANDROID_AGENT_LIVE_REPORTING=false`. النسخة الحية ليست ملف التسليم الحالي ولا تُعتمد قبل اختبار جهاز وشريحة ونتائج Android غير المتزامنة بصورة منفصلة.
-
-ولإيقاف البيئة مع الاحتفاظ بالبيانات:
-
-```bash
-docker compose down
-```
-
-حذف volumes يمحو قاعدة التطوير وRedis، لذلك لا تستخدم `docker compose down --volumes` إلا عندما تقصد إعادة البيئة من الصفر.
-
-## التشغيل المباشر على الجهاز
-
-شغّل PostgreSQL وRedis محليين، ثم اضبط في `.env` على سبيل المثال:
-
-```dotenv
-DATABASE_URL=postgresql://nabda:<كلمة-المرور>@127.0.0.1:5432/nabda
-REDIS_URL=redis://127.0.0.1:6379
-PROVIDER_MODE=mock
-ENABLE_LIVE_SMS=false
-```
-
-بعد ذلك:
-
-```bash
-npm install
-npm run db:migrate
-npm run db:free
-npm run dev
-```
-
-وفي نافذة ثانية:
-
-```bash
-npm run worker:dev
-```
-
-## استخدام API
-
-يرسل المفتاح في `Authorization` ولا يوضع في query string أو logs:
+API keys use the `Authorization` header and must never appear in a URL or log:
 
 ```http
-Authorization: Bearer nbda_test_...<secret>
+Authorization: Bearer <NBDA_API_KEY>
 ```
 
-عند استخدام مفتاح الخطة المجانية، يعرض `GET /v1/usage` الخطة `free` والحد الشهري `1000`. تحسب الرسالة عند قبول طلب جديد فقط؛ إعادة طلب idempotent نفسه لا تخصم الاستخدام مرة ثانية، وأي طلب يتجاوز الحصة الشهرية يعاد بخطأ `subscription_quota_exceeded` وحالة HTTP `429`.
-
-### إنشاء رسالة
-
-`Idempotency-Key` مطلوب. إعادة الطلب بالمفتاح ونفس المحتوى تعيد الرسالة الموجودة ولا تخصم الاستخدام مرتين؛ استعمال المفتاح نفسه مع محتوى مختلف يعيد `409`.
+Create a message:
 
 ```bash
-curl --request POST http://localhost:3000/v1/messages \
+curl --request POST http://127.0.0.1:3000/v1/messages \
   --header 'Authorization: Bearer <NBDA_API_KEY>' \
   --header 'Idempotency-Key: 018f47c4-6ec8-7d8a-a14f-13ab5d4e2132' \
   --header 'Content-Type: application/json' \
   --data '{
     "to": "+2189XXXXXXXX",
-    "content": "رمز التحقق الخاص بك هو 123456",
+    "content": "Your verification code is 123456",
     "purpose": "authentication",
     "consent_confirmed": true,
     "consent_reference": "consent-record-demo-1",
@@ -252,47 +187,59 @@ curl --request POST http://localhost:3000/v1/messages \
   }'
 ```
 
-الرقم يجب أن يكون بالصيغة الدولية E.164. رقم المرسل لا يقبله هذا endpoint؛ يستمده النظام من الجهاز المرتبط بالمؤسسة لمنع الانتحال. استخدم أرقامًا شكلية فقط في التطوير، لأن Mock لا يرسل شيئًا.
+Requirements:
 
-في المرحلة الأولى يجب أن يلائم النص مقطع SMS واحدًا: حتى 160 وحدة GSM-7 (مع احتساب رموز جدول الامتداد بوحدتين) أو 70 وحدة UTF-16 للنصوص الأخرى. يرفض الخادم الرسالة الأطول قبل حجز الرصيد، ويعيد العامل الفحص قبل أي مزود كحاجز ثانٍ.
+- `Idempotency-Key` is mandatory.
+- Phone numbers must use E.164 format.
+- `consent_reference` must identify an auditable record in the operator's system.
+- The sender number is derived from the selected organization device; clients cannot provide it.
+- The MVP accepts one SMS segment: up to 160 GSM-7 units or 70 UTF-16 units.
+- Use fictional phone numbers in development. Mock mode does not send anything.
 
-`consent_confirmed` إقرار من عميل الـAPI بأن الرسالة متوقعة، وليس إثباتًا ينشئه النظام. لذلك يكون `consent_reference` مطلوبًا ويجب أن يشير إلى سجل قابل للتدقيق في نظام الشركة.
+Repeating the same idempotency key and payload returns the original message without charging usage again. Reusing the key with a different payload returns `409`.
 
-### إضافة رقم إلى قائمة الإيقاف
-
-يتطلب هذا المسار صلاحية `opt_outs:write`. تكرار الرقم النشط يعيد المورد نفسه، وتُلغى الرسائل المنتظرة لهذا الرقم داخل المؤسسة فورًا:
-
-```bash
-curl --request POST http://localhost:3000/v1/opt-outs \
-  --header 'Authorization: Bearer <NBDA_API_KEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{"phone":"+2189XXXXXXXX","reason":"طلب المستلم الإيقاف"}'
-```
-
-### قراءة رسالة
+Read the message and current usage:
 
 ```bash
-curl http://localhost:3000/v1/messages/<MESSAGE_ID> \
+curl http://127.0.0.1:3000/v1/messages/<MESSAGE_ID> \
+  --header 'Authorization: Bearer <NBDA_API_KEY>'
+
+curl http://127.0.0.1:3000/v1/usage \
   --header 'Authorization: Bearer <NBDA_API_KEY>'
 ```
 
-لا يستطيع مفتاح مؤسسة قراءة رسالة مؤسسة أخرى؛ يعيد النظام `404` بدل كشف وجود المورد.
+## Core API routes
 
-### قراءة الاستخدام
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/health` | Liveness and provider mode |
+| `GET` | `/health/ready` | PostgreSQL and Redis readiness |
+| `POST` | `/v1/messages` | Accept an idempotent message |
+| `GET` | `/v1/messages/:id` | Read a tenant-scoped message |
+| `GET` | `/v1/usage` | Read plan limits and current usage |
+| `GET` | `/v1/queue` | Read queue counts and oldest wait time |
+| `POST` | `/v1/contacts` | Create or atomically update a contact |
+| `GET` | `/v1/contacts` | List contacts using cursor pagination |
+| `DELETE` | `/v1/contacts/:id` | Remove contact data and retain the audit fact |
+| `POST` | `/v1/opt-outs` | Block a recipient and cancel queued messages |
+
+The full contract is available in:
+
+- [OpenAPI specification](docs/openapi.yaml)
+- [Postman collection](docs/postman/nabda-api.postman_collection.json)
+- [Postman local environment](docs/postman/nabda-local.postman_environment.json)
+- Local searchable Help Center at [`/help`](http://127.0.0.1:3000/help)
+
+The Postman environment contains no API key. Add your local key to its `api_key` variable after importing it.
+
+## Contacts and opt-outs
+
+A contact does not grant permission for every future message. Each send request must still declare the expected communication context and include a traceable `consent_reference`.
+
+Add or update a contact:
 
 ```bash
-curl http://localhost:3000/v1/usage \
-  --header 'Authorization: Bearer <NBDA_API_KEY>'
-```
-
-تحسب الحصة عند قبول رسالة جديدة في `queued`. الطلب idempotent المعاد والطلب المرفوض لا يستهلكان الحصة، ولا تعيد الإلغاءات اللاحقة الرصيد. عند نفاد الحصة أو تجاوز معدل الإرسال يعيد API الخطأ `429` مع وقت إعادة المحاولة متى أمكن.
-
-### حفظ جهة اتصال
-
-يتطلب الإنشاء أو التحديث صلاحية `contacts:write`. الرقم هو المفتاح الطبيعي داخل المؤسسة: تكرار الطلب للرقم نفسه يحدّث المورد ذريًا بدل إنشاء نسخة ثانية.
-
-```bash
-curl --request POST http://localhost:3000/v1/contacts \
+curl --request POST http://127.0.0.1:3000/v1/contacts \
   --header 'Authorization: Bearer <NBDA_API_KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -304,57 +251,63 @@ curl --request POST http://localhost:3000/v1/contacts \
   }'
 ```
 
-جهة الاتصال ليست موافقة تلقائية على كل رسالة؛ يبقى على كل طلب إرسال أن يقر بأن الرسالة متوقعة ومصرح بها، وتبقى قائمة الإيقاف هي القرار الأعلى أولوية.
-
-للقراءة بصلاحية `contacts:read`:
+Add a recipient to the organization blocklist:
 
 ```bash
-curl 'http://localhost:3000/v1/contacts?limit=20' \
-  --header 'Authorization: Bearer <NBDA_API_KEY>'
+curl --request POST http://127.0.0.1:3000/v1/opt-outs \
+  --header 'Authorization: Bearer <NBDA_API_KEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{"phone":"+2189XXXXXXXX","reason":"Recipient requested stop"}'
 ```
 
-تعيد الاستجابة `meta.next_cursor` عند وجود صفحة تالية. مرّر القيمة كما هي في `cursor`. حذف جهة الاتصال يزيل بيانات صفها ويحتاج `contacts:write`؛ تبقى واقعة الحذف فقط في سجل التدقيق:
+An active opt-out is checked when a request is accepted and again at the dispatch boundary. Queued messages for that recipient are cancelled.
+
+## Android Simulation agent
+
+The Android client lives in [`android-agent/`](android-agent/) and uses Java with the native Android SDK. It does not require Flutter, React Native, Compose, Retrofit, or Room.
+
+The distributed Simulation APK:
+
+- does not request `SEND_SMS`
+- contains no `SmsManager` call
+- tests pairing, leases, queue claiming, state transitions, and reporting
+- cannot consume SIM credit or send a carrier message
+
+Create or rotate a device-scoped token:
 
 ```bash
-curl --request DELETE http://localhost:3000/v1/contacts/<CONTACT_ID> \
-  --header 'Authorization: Bearer <NBDA_API_KEY>'
+docker compose run --rm migrate npm run db:device-agent
 ```
 
-### قراءة ملخص الطابور
+Do not store an organization API key on the phone. Use only the one-time device token produced by this command.
 
-يتطلب `messages:read` ويعيد أعداد الرسائل `queued` الجاهزة والمجدولة وقيد التنفيذ، إضافة إلى وقت أقدم رسالة منتظرة:
+With one unlocked Android phone connected through USB and USB debugging enabled:
 
 ```bash
-curl http://localhost:3000/v1/queue \
-  --header 'Authorization: Bearer <NBDA_API_KEY>'
+export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
+npm run android:install:simulation
 ```
 
-هذه قراءة من PostgreSQL، أي من مصدر الحقيقة، وليست مجرد لقطة من Redis قد تضيع بعد إعادة التشغيل.
+The installer creates an `adb reverse` tunnel, installs the Simulation APK, and opens it. Enter:
 
-## تنظيف الرسائل والاحتفاظ
-
-يشغّل العامل مهمة دورية تنقّح الرسائل النهائية (`delivered`, `failed`, `expired`, `cancelled`) عندما يتجاوز عمرها `retention_days` المحدد في الخطة. يستبدل المحتوى بعلامة `[redacted]`، ويزيل رقم المستلم والمرسل ومراجع المزوّد وmetadata ومراجع العميل/الموافقة وسبب الفشل. كما ينقّح payloads الأحداث والـwebhooks وأجسام ردودها، لكنه يبقي معرّف الرسالة وحالتها وتوقيتها وحقائق الأحداث المنقّحة وسجل التدقيق وإحصاءات الاستخدام.
-
-تنقل مهمة صيانة الرسائل `queued` المنتهية إلى `expired` حتى لو لم يتصل هاتف Android، وتنهي الرسائل `sent` عند انتهاء نافذة الاستلام، ثم تصبح قابلة للتنقيح. لا تُحذف سجلات opt-out ضمن هذا التنظيف، حتى لا يعود النظام إلى مراسلة شخص طلب الإيقاف.
-
-إعدادات التطوير:
-
-```dotenv
-CLEANUP_INTERVAL_MS=3600000
-CLEANUP_BATCH_SIZE=500
+```text
+Server URL: http://127.0.0.1:3000
+Device token: <one-time-device-token>
 ```
 
-ينفذ كل batch داخل transaction قصيرة مع قفل `SKIP LOCKED`، ويمكن تشغيل أكثر من worker دون أن ينظف الصف نفسه بالتزامن.
+Then select **Connect & start**. The API remains bound to loopback and is not exposed to the local Wi-Fi network.
+
+More details are in [android-agent/README.md](android-agent/README.md).
 
 ## Webhooks
 
-تُرسل أحداث مثل `message.sent` و`message.delivered` من طابور مستقل. يوقّع الخادم البايتات الخام للطلب بهذه الصيغة:
+Webhook bodies are signed over the exact raw bytes:
 
 ```text
 HMAC_SHA256(secret, timestamp + "." + rawBody)
 ```
 
-وتصل الترويسات التالية:
+Headers:
 
 ```text
 X-Nabda-Delivery-Id: <delivery-id>
@@ -363,85 +316,160 @@ X-Nabda-Timestamp: <unix-seconds>
 X-Nabda-Signature: v1=<hex-digest>
 ```
 
-على المستلم التحقق من التوقيع على الـraw body، رفض timestamp القديم، وحفظ event id لمنع المعالجة المكررة. قد يعيد النظام webhook عند فشل الشبكة، لذلك يجب أن يكون المستلم idempotent.
-يعطّل النظام endpoint تلقائيًا بعد 10 إخفاقات متتالية ويغلق deliveries المنتظرة له، حتى لا يحتكر endpoint معطّل عمال webhooks المشتركين؛ إعادة التفعيل عملية إدارية بعد إصلاح الوجهة.
+Consumers must verify the signature before parsing the body, reject stale timestamps, and deduplicate by event ID. Delivery is at least once, so handlers must be idempotent.
 
-## الأمان ومكافحة إساءة الاستخدام
+An endpoint is disabled after repeated failures to prevent one broken destination from occupying the shared webhook workers indefinitely.
 
-- المؤسسة والخطة والجهاز وقائمة الإيقاف تُستنتج من مفتاح API، ولا يحدد العميل `organization_id`.
-- الحصة الشهرية دائمة في PostgreSQL، ومحدد المعدل ذري في Redis ويفشل مغلقًا افتراضيًا.
-- توجد حدود مستقلة لطلبات عنوان المصدر ومفتاح API وجهاز Android، إضافةً إلى حد الرسائل لكل مؤسسة ولكل مستلم.
-- يفحص النظام opt-out عند قبول الطلب وقبل اتصال العامل بالمزود. يستخدم مسار الإيقاف والعامل قفل مستلم مشتركًا، لذلك لا توجد نافذة غير مرتبة بين آخر فحص واتصال المزود.
-- لا يعاد إرسال timeout ذي النتيجة المجهولة بصورة عمياء، لتجنب وصول الرسالة مرتين.
-- مفاتيح المزود وأسرار webhooks مشفرة بـAES-256-GCM ولا تظهر في الاستجابات.
-- لا تسجل نص الرسالة أو Authorization أو أسرار المزود في logs.
-- لا يوجد endpoint جماعي في المرحلة الأولى؛ أي حملات مستقبلية يجب أن تمر لكل مستلم عبر نفس الحصة والموافقة وقائمة الإيقاف.
-- Docker Compose مخصص للتطوير. في الإنتاج يجب استخدام مستخدم PostgreSQL محدود الصلاحيات وعدم تشغيل التطبيق بحساب superuser؛ تفعيل RLS مؤجل كما هو موثق في ADR إلى أن تفصل أدوار API والعامل بصورة صحيحة.
-- يبقى `TRUSTED_PROXY_CIDRS` فارغًا عند الاتصال المباشر. خلف reverse proxy، ضع فقط عناوين/CIDRs الوكيل الفعلية حتى لا يُقبل `X-Forwarded-For` من الإنترنت ولا يشترك جميع العملاء في عنوان واحد.
+## Security model
 
-مرحلة Mock/Simulation قابلة للتجربة، لكن **لا تعتمد الإرسال الحي للإنتاج بعد**. قبل ذلك يلزم على الأقل: قناة inbound/STOP موثوقة يستطيع المستلم استخدامها دون الاعتماد على موظف المؤسسة، ربط صريح بالشريحة الصحيحة في هواتف dual-SIM، توقيع Release مملوك، قاعدة/Redis خاصة بأدوار محدودة، WAF ومحدد معدل عند الحافة، ومراقبة وتنبيه واختبار استعادة النسخ الاحتياطية. أعلام live ليست بديلًا عن هذه المراجعة.
+- Tenant identity always comes from the authenticated API key, never from request input.
+- Tenant-owned queries are scoped by `organization_id` and protected by composite database relationships.
+- Raw API keys and device tokens are shown once and stored as keyed digests.
+- Provider credentials and webhook secrets are encrypted with AES-256-GCM.
+- Message quota is durable in PostgreSQL; rate limiting is atomic in Redis and fails closed by default.
+- Requests have IP, API-key, device, organization-write, and message-recipient limits.
+- Opt-outs are checked both at acceptance and immediately before dispatch.
+- Unknown provider outcomes enter manual review and are never retried blindly.
+- Logs redact authorization headers, credentials, phone numbers, and message content.
+- Webhook destinations are DNS-pinned and checked against private, loopback, link-local, translation, and rebinding targets.
+- Message creation, quota accounting, events, and the outbox are committed atomically.
+- Android credentials and messages are bound to either `simulation` or `live`; the client cannot switch modes.
 
-## الشروط القانونية والاستخدام المسؤول
-
-توجد صفحة مستقلة على [`/legal`](http://localhost:3000/legal) توضّح أن نبضة مشروع شخصي تعليمي لتطوير مهارات البرمجة وتصميم الأنظمة وتجربة المستخدم والأمان والاختبار والصيانة. يتحمل مشغّل كل نسخة مسؤولية مفاتيحه وأجهزته وشرائحه والمستلمين والمحتوى وأدلة الموافقة وطلبات الإيقاف ورسوم شركة الاتصالات وإعداداته وامتثاله.
-
-تحظر الصفحة الرسائل المزعجة والإعلانات غير المرغوبة والانتحال والاحتيال والدخول أو الاعتراض دون إذن والتحايل على الحصص وقوائم الإيقاف وحواجز الإرسال الحي. وتستند قائمة التحقق إلى:
-
-- [القانون رقم 5 لسنة 2022 بشأن مكافحة الجرائم الإلكترونية](https://lawsociety.ly/legislation/%D9%82%D8%A7%D9%86%D9%88%D9%86-%D8%B1%D9%82%D9%85-5-%D9%84%D8%B3%D9%86%D8%A9-2022-%D9%85-%D8%A8%D8%B4%D8%A3%D9%86-%D9%85%D9%83%D8%A7%D9%81%D8%AD%D8%A9-%D8%A7%D9%84%D8%AC%D8%B1%D8%A7%D8%A6%D9%85-%D8%A7/)، وخصوصًا أحكام الدخول والاعتراض والترويج غير المرغوب ومسؤولية إدارة الشخص المعنوي.
-- [القانون رقم 6 لسنة 2022 بشأن المعاملات الإلكترونية](https://lawsociety.ly/legislation/%D9%82%D8%A7%D9%86%D9%88%D9%86-%D8%B1%D9%82%D9%85-6-%D9%84%D8%B3%D9%86%D8%A9-2022-%D9%85-%D8%A8%D8%B4%D8%A3%D9%86-%D8%A7%D9%84%D9%85%D8%B9%D8%A7%D9%85%D9%84%D8%A7%D8%AA-%D8%A7%D9%84%D8%A5%D9%84%D9%83/)، وخصوصًا فصل حماية البيانات والإشعار والغرض والسرية والنقل.
-- [القانون رقم 22 لسنة 2010 بشأن الاتصالات](https://security-legislation.ly/ar/latest-laws/%D9%82%D8%A7%D9%86%D9%88%D9%86-%D8%B1%D9%82%D9%85-22-%D9%84%D8%B3%D9%86%D8%A9-2010-%D8%A8%D8%B4%D8%A3%D9%86-%D8%A7%D9%84%D8%A7%D8%AA%D8%B5%D8%A7%D9%84%D8%A7%D8%AA/)، مع التنبيه إلى أن وضع الترخيص يعتمد على وقائع وطبيعة كل تشغيل.
-
-إخلاء المسؤولية مصاغ «بالقدر الذي يسمح به القانون»؛ فهو لا يلغي مسؤولية لا تجيز القواعد الآمرة استبعادها، ولا يعفي أي شخص من أفعاله العمدية أو إهماله الموجب للمساءلة أو واجباته القانونية. الصفحة ليست استشارة قانونية، ويجب مراجعتها مع محامٍ ليبي مؤهل والجهات التنظيمية وشركة الاتصالات قبل أي إتاحة عامة أو إرسال حي.
-
-## أوامر التطوير
+Run security and correctness checks:
 
 ```bash
-npm run check       # فحص TypeScript
-npm test            # الاختبارات
-npm run build       # بناء dist
-npm run db:migrate  # تطبيق migrations
-npm run db:free     # مساحة محلية مجانية دائمة: 1000 عملية/شهر
-npm run db:seed     # بيانات محلية ومفتاح اختبار
-npm run smoke       # اختبار HTTP متكامل؛ يحتاج NBDA_E2E_API_KEY
+npm run check
+npm test
+npm run build
+npm audit --omit=dev
+docker compose config --quiet
 ```
 
-بعد seed يمكن تجربة الصحة وجهات الاتصال وMock dispatch والطابور وopt-out والاستخدام عبر:
+## Retention
+
+The worker periodically redacts terminal messages after the plan's retention period. It removes message content, recipient and sender numbers, provider references, metadata, consent references, and failure details. Related event and webhook payloads are also redacted while status, timing, usage counters, and audit facts remain available.
+
+Expired queued messages are moved to `expired` even when an Android device is offline. Opt-out records are intentionally retained to prevent future contact.
+
+Development defaults:
+
+```dotenv
+CLEANUP_INTERVAL_MS=3600000
+CLEANUP_BATCH_SIZE=500
+```
+
+## Direct local development
+
+Run PostgreSQL and Redis, then configure `.env` with local addresses and Mock mode:
+
+```dotenv
+DATABASE_URL=postgresql://nabda:<password>@127.0.0.1:5432/nabda
+REDIS_URL=redis://127.0.0.1:6379
+PROVIDER_MODE=mock
+ENABLE_LIVE_SMS=false
+```
+
+Start the API:
 
 ```bash
-NBDA_E2E_API_KEY='<مفتاح-التطوير>' npm run smoke
+npm install
+npm run db:migrate
+npm run db:free
+npm run dev
 ```
 
-لا يطبع الاختبار المفتاح ولا يرسل SMS؛ يجب تشغيله فقط على بيئة تطوير تستخدم `PROVIDER_MODE=mock`.
-
-للتأكد من صورة الإنتاج محليًا من دون نشرها:
+Start the worker in another terminal:
 
 ```bash
-docker build --target production -t nabda-api-saas:local .
+npm run worker:dev
 ```
 
-## بنية المشروع
+## Development commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run check` | Type-check without emitting files |
+| `npm test` | Run the Vitest suite once |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run build` | Compile production JavaScript into `dist/` |
+| `npm run db:migrate` | Apply pending PostgreSQL migrations |
+| `npm run db:free` | Provision or rotate the permanent local Free environment |
+| `npm run db:seed` | Add broader development fixtures |
+| `npm run db:device-agent` | Provision or rotate an Android device token |
+| `npm run android:build:simulation` | Test, lint, and build the Simulation APK |
+| `npm run android:install:simulation` | Install the Simulation APK over USB |
+| `npm run android:smoke:simulation` | Exercise the Android pull protocol in Simulation mode |
+| `npm run smoke` | Exercise the HTTP API in Mock mode |
+
+The HTTP smoke test requires a local key:
+
+```bash
+NBDA_E2E_API_KEY='<local-api-key>' npm run smoke
+```
+
+It rejects non-loopback base URLs before sending credentials.
+
+Stop the local stack while preserving data:
+
+```bash
+docker compose down
+```
+
+`docker compose down --volumes` permanently removes the local PostgreSQL and Redis volumes. Use it only when you intentionally want a clean database.
+
+## Production status
+
+The Mock/Simulation system is ready for local evaluation. **Live SMS is not production-approved yet.** Before live or public operation, complete at least the following:
+
+- a recipient-facing inbound/STOP channel independent of organization staff
+- explicit SIM selection and verification for dual-SIM phones
+- a release APK signed with an owned production key
+- separate least-privilege database roles for migrations, API, and workers
+- private production PostgreSQL and Redis with authentication and backup recovery tests
+- an edge WAF, trusted-proxy configuration, and external rate limiting
+- monitoring, alerting, incident response, and queue recovery procedures
+- carrier, regulatory, privacy, and legal review for the intended deployment
+
+Live flags are safety gates, not substitutes for this review.
+
+## Legal and responsible use
+
+Nabda is a personal educational project created to develop skills in programming, system design, API security, user experience, testing, and software maintenance.
+
+The operator of each installation is responsible for its API keys, devices, SIMs, recipients, message content, consent evidence, opt-out handling, carrier charges, infrastructure, staff access, and compliance. Spam, unsolicited promotion, impersonation, fraud, unauthorized access or interception, and bypassing safety controls are prohibited.
+
+See the complete bilingual notice at [`/legal`](http://127.0.0.1:3000/legal). Its Libyan-law reference checklist includes:
+
+- [Law No. 5 of 2022 on Cybercrime](https://lawsociety.ly/legislation/%D9%82%D8%A7%D9%86%D9%88%D9%86-%D8%B1%D9%82%D9%85-5-%D9%84%D8%B3%D9%86%D8%A9-2022-%D9%85-%D8%A8%D8%B4%D8%A3%D9%86-%D9%85%D9%83%D8%A7%D9%81%D8%AD%D8%A9-%D8%A7%D9%84%D8%AC%D8%B1%D8%A7%D8%A6%D9%85-%D8%A7/)
+- [Law No. 6 of 2022 on Electronic Transactions](https://lawsociety.ly/legislation/%D9%82%D8%A7%D9%86%D9%88%D9%86-%D8%B1%D9%82%D9%85-6-%D9%84%D8%B3%D9%86%D8%A9-2022-%D9%85-%D8%A8%D8%B4%D8%A3%D9%86-%D8%A7%D9%84%D9%85%D8%B9%D8%A7%D9%85%D9%84%D8%A7%D8%AA-%D8%A7%D9%84%D8%A5%D9%84%D9%83/)
+- [Law No. 22 of 2010 on Telecommunications](https://security-legislation.ly/ar/latest-laws/%D9%82%D8%A7%D9%86%D9%88%D9%86-%D8%B1%D9%82%D9%85-22-%D9%84%D8%B3%D9%86%D8%A9-2010-%D8%A8%D8%B4%D8%A3%D9%86-%D8%A7%D9%84%D8%A7%D8%AA%D8%B5%D8%A7%D9%84%D8%A7%D8%AA/)
+
+The notice limits responsibility only to the extent permitted by applicable law. It cannot exclude duties or liability that mandatory law does not allow a person to exclude. This repository is not legal advice; consult a qualified Libyan lawyer, regulators, and the carrier before public or live use.
+
+## Project structure
 
 ```text
 src/
-  db/             الاتصال بـPostgreSQL وتشغيل migrations وseed
-  domain/         الأنواع والأخطاء وحالات الرسالة
-  maintenance/    تنقيح المحتوى الحساس وفق مدة الاحتفاظ
-  providers/      Mock وadapter المزود الاختياري
-  queue/          outbox وBullMQ
-  rate-limit/     محدد المعدل في Redis
-  repositories/   الاستعلامات المعزولة لكل مؤسسة وoutbox
-  services/       المصادقة ومنطق الرسائل والاستخدام
-  worker/         تنفيذ الرسائل وwebhooks
-  worker.ts       عملية المهام الخلفية
-  server.ts       عملية API
-tests/            اختبارات الوحدة وعقد API بمستودع ذاكرة
-public/           واجهة إنجليزية/عربية وخط Cairo محلي
-assets/           بطاقة المشاركة الاجتماعية الأصلية
-docs/             OpenAPI وPostman وقرارات معمارية وخريطة أفكار المنتج
+  db/             PostgreSQL connection, migrations, and provisioning
+  domain/         Message states, shared types, and errors
+  maintenance/    Retention and sensitive-data redaction
+  providers/      Mock and external provider adapters
+  queue/          BullMQ queues and transactional outbox dispatcher
+  rate-limit/     Redis-backed atomic rate limits
+  repositories/   Tenant-scoped database operations
+  services/       Authentication, messages, usage, and Android protocol
+  worker/         Message dispatch, webhooks, and status reconciliation
+  server.ts       API process entry point
+  worker.ts       Background worker entry point
+android-agent/    Native Android Simulation and live-gated source variants
+tests/            Unit, API contract, security, and worker tests
+public/           English/Arabic website and local Cairo fonts
+docs/             OpenAPI, Postman, architecture decisions, and design notes
+migrations/       Ordered PostgreSQL migrations
 ```
 
-التفاصيل وبدائل التصميم موثقة في [قرارات المعمارية](docs/ARCHITECTURE_DECISIONS.md).
+Additional documentation:
 
-الأفكار المقترحة للوحة التشغيل والاستيراد والأجهزة والقوالب موثقة في [خريطة أفكار المنتج](docs/PRODUCT_IDEAS_AR.md).
-
-مرجع الواجهة الرئيسية والحركة موثق في [مرجع تصميم الواجهة](docs/UI_DESIGN_BRIEF_AR.md)، اعتمادًا على الصورة والمقاطع التي وفرها صاحب المشروع.
+- [Architecture decisions](docs/ARCHITECTURE_DECISIONS.md)
+- [Product ideas](docs/PRODUCT_IDEAS_AR.md)
+- [UI design brief](docs/UI_DESIGN_BRIEF_AR.md)
