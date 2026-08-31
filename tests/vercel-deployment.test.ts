@@ -13,6 +13,7 @@ describe("Vercel static deployment", () => {
 
     expect(config.buildCommand).toBe("npm run vercel:build");
     expect(config.outputDirectory).toBe(".vercel-static");
+    expect(config.framework).toBeNull();
     expect(config.cleanUrls).toBe(true);
     expect(config.functions).toBeUndefined();
     expect(config.builds).toBeUndefined();
