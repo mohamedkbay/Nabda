@@ -432,6 +432,18 @@ The Mock/Simulation system is ready for local evaluation. **Live SMS is not prod
 
 Live flags are safety gates, not substitutes for this review.
 
+### Vercel deployment scope
+
+The repository contains an explicit `vercel.json` configuration for deploying the public website and documentation as static files. Vercel runs:
+
+```bash
+npm run vercel:build
+```
+
+The generated `.vercel-static/` directory contains the marketing pages, Help Center, local fonts, OpenAPI specification, Postman downloads, and social image.
+
+This Vercel deployment is intentionally **website-only**. It does not run `/v1/*`, PostgreSQL, Redis, BullMQ, the worker, or the Android device protocol. Deploy those components on a persistent container or virtual machine with private PostgreSQL and Redis, then expose the API through a separate secured hostname.
+
 ## Legal and responsible use
 
 Nabda is a personal educational project created to develop skills in programming, system design, API security, user experience, testing, and software maintenance.

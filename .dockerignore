@@ -1,6 +1,8 @@
 node_modules
 dist
 coverage
+.vercel
+.vercel-static
 .env
 .git
 *.log

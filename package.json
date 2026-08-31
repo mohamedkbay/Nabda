@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "vercel:build": "node scripts/build-vercel-static.mjs",
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx watch --env-file=.env src/server.ts",
     "worker:dev": "tsx watch --env-file=.env src/worker.ts",
