@@ -1,18 +1,17 @@
 import type {
   BackupResult,
+  CampaignSummary,
   ConnectionTestResult,
   ContactSummary,
   CustomerSummary,
   DashboardSnapshot,
   DesktopSettings,
-  DeviceSummary,
   MessageSummary,
-  PairingSession,
 } from "../contracts.js";
 
 declare global {
   interface Window {
-    nabdaDesktop: {
+    httpSmsDesktop: {
       dashboard: { get(): Promise<DashboardSnapshot> };
       customers: {
         list(): Promise<CustomerSummary[]>;
@@ -34,20 +33,22 @@ declare global {
           contactId?: string;
           to: string;
           body: string;
+          sendAt?: string;
+          encrypted: boolean;
+          requestId?: string;
           consentConfirmed: true;
         }): Promise<MessageSummary>;
         cancel(input: { id: string }): Promise<MessageSummary>;
+        refreshStatuses(input: { limit: number }): Promise<MessageSummary[]>;
       };
-      devices: {
-        list(): Promise<DeviceSummary[]>;
-        createPairing(): Promise<PairingSession>;
-        revoke(input: { id: string }): Promise<{ ok: true }>;
-        testHeartbeat(input: { id: string }): Promise<ConnectionTestResult>;
+      campaigns: {
+        list(): Promise<CampaignSummary[]>;
+        create(input: object): Promise<CampaignSummary>;
       };
       settings: {
         get(): Promise<DesktopSettings>;
         save(input: object): Promise<DesktopSettings>;
-        testProvider(input: object): Promise<ConnectionTestResult>;
+        testProvider(): Promise<ConnectionTestResult>;
       };
       backup: {
         export(): Promise<BackupResult & { cancelled?: boolean }>;

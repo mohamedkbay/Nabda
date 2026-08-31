@@ -1,13 +1,13 @@
 "use strict";
 
-const api = window.nabdaDesktop;
+const api = window.httpSmsDesktop;
 const pageTitles = {
   dashboard: "لوحة التحكم",
   customers: "العملاء",
   contacts: "جهات الاتصال",
+  campaigns: "الحملات",
   messages: "الرسائل",
-  devices: "الأجهزة",
-  settings: "الإعدادات",
+  integration: "إعداد httpSMS",
   backup: "النسخ الاحتياطي",
 };
 const statusLabels = {
@@ -25,15 +25,17 @@ const statusLabels = {
 let activePage = "dashboard";
 let customers = [];
 let contacts = [];
-let pairingTimer;
+let statusPollTimer;
+let encryptedDefault = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   renderIcons();
   bindNavigation();
   bindDialogs();
   bindForms();
-  bindDeviceActions();
   bindSettings();
+  bindCampaigns();
+  bindStatusRefresh();
   bindBackup();
   document.querySelector("#refresh-page").addEventListener("click", () => void loadPage(activePage));
   void loadPage("dashboard");
@@ -51,12 +53,14 @@ function bindNavigation() {
 function navigate(page) {
   if (!pageTitles[page]) return;
   activePage = page;
+  clearInterval(statusPollTimer);
   document.querySelectorAll(".page").forEach((element) => element.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach((element) => element.classList.remove("active"));
   document.querySelector(`#page-${page}`).classList.add("active");
   document.querySelector(`[data-page="${page}"]`).classList.add("active");
   document.querySelector("#page-title").textContent = pageTitles[page];
   void loadPage(page);
+  if (page === "messages") void startStatusPolling();
 }
 
 async function loadPage(page) {
@@ -64,9 +68,9 @@ async function loadPage(page) {
     if (page === "dashboard") await loadDashboard();
     if (page === "customers") await loadCustomers();
     if (page === "contacts") await loadContacts();
+    if (page === "campaigns") await loadCampaigns();
     if (page === "messages") await loadMessages();
-    if (page === "devices") await loadDevices();
-    if (page === "settings") await loadSettings();
+    if (page === "integration") await loadSettings();
   } catch {
     toast("تعذّر تحميل البيانات المحلية.", true);
   }
@@ -77,7 +81,7 @@ async function loadDashboard() {
   setText("metric-customers", snapshot.customers);
   setText("metric-contacts", snapshot.contacts);
   setText("metric-queued", snapshot.queuedMessages);
-  setText("metric-devices", snapshot.connectedDevices);
+  setText("metric-integration", snapshot.integrationConfigured ? "جاهز" : "إعداد");
   const list = document.querySelector("#recent-messages");
   clear(list);
   if (!snapshot.recentMessages.length) return empty(list, "لا توجد رسائل بعد.");
@@ -169,28 +173,41 @@ async function loadMessages() {
   renderIcons();
 }
 
-async function loadDevices() {
-  const devices = await api.devices.list();
-  const list = document.querySelector("#devices-list");
+async function loadCampaigns() {
+  if (!contacts.length) contacts = await api.contacts.list();
+  const eligible = contacts.filter((contact) => !contact.optedOut);
+  const contactList = document.querySelector("#campaign-contacts");
+  clear(contactList);
+  if (!eligible.length) empty(contactList, "أضف جهات اتصال نشطة أولًا.");
+  eligible.forEach((contact) => {
+    const label = node("label", "campaign-contact");
+    const input = node("input");
+    input.type = "checkbox";
+    input.name = "contactIds";
+    input.value = contact.id;
+    label.append(input, document.createTextNode(`${contact.name} · ${contact.phone}`));
+    contactList.append(label);
+  });
+
+  const campaigns = await api.campaigns.list();
+  const list = document.querySelector("#campaigns-list");
   clear(list);
-  if (!devices.length) return empty(list, "لا توجد أجهزة مرتبطة.");
-  devices.forEach((device) => {
-    const item = node("div", "device-item");
-    const head = node("div", "device-item-head");
-    head.append(node("strong", "", device.name), statusPill(device.status));
-    const meta = node("p", "", device.lastSeenAt ? `آخر اتصال: ${formatDate(device.lastSeenAt)}` : "لم يتصل بعد");
-    const actions = node("div", "device-actions");
-    const test = buttonWithIcon("اختبار Heartbeat", "activity");
-    test.addEventListener("click", () => void testDevice(device.id));
-    const rotate = buttonWithIcon("إعادة الاقتران", "rotate-cw");
-    rotate.addEventListener("click", () => void rotateDevice(device.id));
-    const revoke = buttonWithIcon("إلغاء الجهاز", "unlink");
-    revoke.addEventListener("click", () => void revokeDevice(device.id));
-    actions.append(test, rotate, revoke);
-    item.append(head, meta, actions);
+  if (!campaigns.length) return empty(list, "لا توجد حملات بعد.");
+  const labels = { scheduled: "مجدولة", running: "قيد التنفيذ", completed: "مكتملة", attention: "تحتاج متابعة" };
+  campaigns.forEach((campaign) => {
+    const item = node("div", "campaign-item");
+    const head = node("div", "campaign-item-head");
+    head.append(node("strong", "", campaign.name), statusPill(campaign.status, labels[campaign.status]));
+    const meta = node("p", "", `${campaign.recipientCount} مستلم · تبدأ ${formatDate(campaign.startsAt)}`);
+    const counts = node("div", "campaign-counts");
+    counts.append(
+      node("span", "", `${campaign.queuedCount} في الطابور`),
+      node("span", "", `${campaign.sentCount} مرسلة`),
+      node("span", "", `${campaign.failedCount} فشلت`),
+    );
+    item.append(head, meta, counts);
     list.append(item);
   });
-  renderIcons();
 }
 
 function bindDialogs() {
@@ -198,6 +215,9 @@ function bindDialogs() {
     button.addEventListener("click", async () => {
       if (button.dataset.dialog === "contact-dialog" && !customers.length) await loadCustomers();
       if (button.dataset.dialog === "message-dialog" && !contacts.length) await loadContacts();
+      if (button.dataset.dialog === "message-dialog") {
+        document.querySelector("#message-encrypted").checked = encryptedDefault;
+      }
       document.querySelector(`#${button.dataset.dialog}`).showModal();
     }),
   );
@@ -249,10 +269,14 @@ function bindForms() {
     const form = document.querySelector("#message-form");
     if (!form.reportValidity()) return;
     const data = new FormData(form);
+    const sendAtValue = data.get("sendAt");
     const input = compact({
       contactId: data.get("contactId"),
       to: data.get("to"),
       body: data.get("body"),
+      sendAt: sendAtValue ? new Date(sendAtValue).toISOString() : undefined,
+      encrypted: data.get("encrypted") === "on",
+      requestId: data.get("requestId"),
       consentConfirmed: true,
     });
     try {
@@ -265,87 +289,6 @@ function bindForms() {
       toast("رُفضت الرسالة. تحقق من البيانات وقائمة الإيقاف.", true);
     }
   });
-}
-
-function bindDeviceActions() {
-  document.querySelector("#new-pairing").addEventListener("click", () => void createPairing());
-  document.querySelector("#copy-pairing").addEventListener("click", async () => {
-    const address = document.querySelector("#pairing-address").textContent;
-    const code = document.querySelector("#pairing-code").textContent;
-    try {
-      await navigator.clipboard.writeText(`${address}\n${code}`);
-      toast("نُسخت بيانات الاقتران.");
-    } catch {
-      toast("تعذّر النسخ؛ أدخل العنوان والرمز يدويًا.", true);
-    }
-  });
-}
-
-async function createPairing() {
-  const button = document.querySelector("#new-pairing");
-  button.disabled = true;
-  try {
-    const session = await api.devices.createPairing();
-    document.querySelector("#pairing-empty").classList.add("hidden");
-    document.querySelector("#pairing-details").classList.remove("hidden");
-    document.querySelector("#pairing-qr").src = session.qrDataUrl;
-    setText("pairing-code", session.oneTimeCode);
-    setText("pairing-address", session.manualAddress);
-    startCountdown(session.expiresAt);
-    toast("تم إنشاء رمز جديد صالح لخمس دقائق.");
-  } catch {
-    toast("تعذّر إنشاء الاقتران. تأكد من اتصال الكمبيوتر بشبكة Wi‑Fi خاصة.", true);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-function startCountdown(expiresAt) {
-  clearInterval(pairingTimer);
-  const update = () => {
-    const remaining = Math.max(0, new Date(expiresAt).getTime() - Date.now());
-    const seconds = Math.ceil(remaining / 1000);
-    setText("pairing-countdown", seconds ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : "انتهى الرمز");
-    if (!seconds) {
-      clearInterval(pairingTimer);
-      document.querySelector("#pairing-qr").removeAttribute("src");
-    }
-  };
-  update();
-  pairingTimer = setInterval(update, 1000);
-}
-
-async function testDevice(id) {
-  try {
-    const result = await api.devices.testHeartbeat({ id });
-    toast(result.message, !result.ok);
-    await loadDevices();
-  } catch {
-    toast("لم يصل Heartbeat من الهاتف. لم تُرسل أي رسالة.", true);
-  }
-}
-
-async function revokeDevice(id) {
-  if (!window.confirm("إلغاء هذا الجهاز وتوكنه الدائم؟")) return;
-  try {
-    await api.devices.revoke({ id });
-    toast("أُلغي وصول الجهاز.");
-    await loadDevices();
-  } catch {
-    toast("تعذّر إلغاء الجهاز.", true);
-  }
-}
-
-async function rotateDevice(id) {
-  if (!window.confirm("سيُلغى توكن الجهاز الحالي، ثم يُنشأ رمز اقتران جديد. متابعة؟")) return;
-  try {
-    await api.devices.revoke({ id });
-    await createPairing();
-    await loadDevices();
-    toast("أُلغي التوكن القديم. امسح QR الجديد لإكمال إعادة الاقتران.");
-  } catch {
-    toast("تعذّرت إعادة الاقتران. التوكن القديم قد يكون ملغى؛ أنشئ رمزًا جديدًا.", true);
-  }
 }
 
 function bindSettings() {
@@ -378,10 +321,7 @@ function bindSettings() {
   document.querySelector("#test-provider").addEventListener("click", async () => {
     const resultElement = document.querySelector("#provider-test-result");
     try {
-      const result = await api.settings.testProvider(compact({
-        provider: document.querySelector("#provider").value,
-        endpoint: document.querySelector("#provider-endpoint").value,
-      }));
+      const result = await api.settings.testProvider();
       resultElement.textContent = `${result.ok ? "نجح" : "فشل"}: ${result.message} — لم تُرسل أي SMS.`;
       resultElement.className = `inline-result${result.ok ? "" : " error"}`;
     } catch {
@@ -393,19 +333,18 @@ function bindSettings() {
 
 async function loadSettings() {
   const settings = await api.settings.get();
-  document.querySelector("#provider").value = settings.provider;
-  document.querySelector("#provider-endpoint").value = settings.providerEndpoint || "";
-  document.querySelector("#sender-label").value = settings.senderLabel || "";
-  document.querySelector("#worker-on-launch").checked = settings.startWorkerOnLaunch;
+  document.querySelector("#sender-from").value = settings.from || "";
+  document.querySelector("#encrypted-default").checked = settings.encryptedDefault;
+  document.querySelector("#status-polling").value = String(settings.statusPollingSeconds);
+  encryptedDefault = settings.encryptedDefault;
   updateSecretStatus(settings.secretConfigured);
 }
 
 function settingsInput() {
   return compact({
-    provider: document.querySelector("#provider").value,
-    providerEndpoint: document.querySelector("#provider-endpoint").value,
-    senderLabel: document.querySelector("#sender-label").value,
-    startWorkerOnLaunch: document.querySelector("#worker-on-launch").checked,
+    from: document.querySelector("#sender-from").value,
+    encryptedDefault: document.querySelector("#encrypted-default").checked,
+    statusPollingSeconds: Number(document.querySelector("#status-polling").value),
     secret: document.querySelector("#provider-secret").value,
     clearSecret: document.querySelector("#clear-secret").checked || undefined,
   });
@@ -413,6 +352,60 @@ function settingsInput() {
 
 function updateSecretStatus(configured) {
   setText("secret-status", configured ? "يوجد مفتاح مشفّر محفوظ في هذا الجهاز." : "لا يوجد مفتاح محفوظ.");
+}
+
+function bindCampaigns() {
+  document.querySelector("#campaign-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+    const data = new FormData(form);
+    const startsAt = data.get("startsAt");
+    const contactIds = [...form.querySelectorAll('input[name="contactIds"]:checked')].map((item) => item.value);
+    if (!contactIds.length) return toast("اختر مستلمًا واحدًا على الأقل.", true);
+    try {
+      await api.campaigns.create({
+        name: data.get("name"),
+        body: data.get("body"),
+        contactIds,
+        startsAt: new Date(startsAt).toISOString(),
+        messagesPerMinute: Number(data.get("messagesPerMinute")),
+        encrypted: data.get("encrypted") === "on",
+        consentConfirmed: true,
+      });
+      form.reset();
+      toast("أُنشئت الحملة وأضيف مستلموها إلى الطابور المحلي.");
+      await loadCampaigns();
+    } catch {
+      toast("تعذّر إنشاء الحملة. تحقق من الموعد والمستلمين وقائمة الإيقاف.", true);
+    }
+  });
+}
+
+function bindStatusRefresh() {
+  document.querySelector("#refresh-statuses").addEventListener("click", () => void refreshStatuses(false));
+}
+
+async function refreshStatuses(silent) {
+  try {
+    await api.messages.refreshStatuses({ limit: 200 });
+    await loadMessages();
+    if (!silent) toast("حُدّثت الحالات من httpSMS.");
+  } catch {
+    if (!silent) toast("تعذّر تحديث الحالات. احفظ Account API Key أولًا.", true);
+  }
+}
+
+async function startStatusPolling() {
+  try {
+    const settings = await api.settings.get();
+    clearInterval(statusPollTimer);
+    statusPollTimer = setInterval(() => {
+      if (activePage === "messages") void refreshStatuses(true);
+    }, settings.statusPollingSeconds * 1_000);
+  } catch {
+    clearInterval(statusPollTimer);
+  }
 }
 
 function bindBackup() {

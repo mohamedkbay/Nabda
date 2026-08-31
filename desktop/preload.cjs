@@ -3,29 +3,28 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 const channels = Object.freeze({
-  dashboardGet: "nabda:dashboard:get",
-  customersList: "nabda:customers:list",
-  customersCreate: "nabda:customers:create",
-  contactsList: "nabda:contacts:list",
-  contactsCreate: "nabda:contacts:create",
-  contactsSetOptOut: "nabda:contacts:set-opt-out",
-  messagesList: "nabda:messages:list",
-  messagesEnqueue: "nabda:messages:enqueue",
-  messagesCancel: "nabda:messages:cancel",
-  devicesList: "nabda:devices:list",
-  devicesCreatePairing: "nabda:devices:create-pairing",
-  devicesRevoke: "nabda:devices:revoke",
-  devicesTestHeartbeat: "nabda:devices:test-heartbeat",
-  settingsGet: "nabda:settings:get",
-  settingsSave: "nabda:settings:save",
-  settingsTestProvider: "nabda:settings:test-provider",
-  backupExport: "nabda:backup:export",
-  backupImport: "nabda:backup:import",
+  dashboardGet: "httpsms-desktop:dashboard:get",
+  customersList: "httpsms-desktop:customers:list",
+  customersCreate: "httpsms-desktop:customers:create",
+  contactsList: "httpsms-desktop:contacts:list",
+  contactsCreate: "httpsms-desktop:contacts:create",
+  contactsSetOptOut: "httpsms-desktop:contacts:set-opt-out",
+  messagesList: "httpsms-desktop:messages:list",
+  messagesEnqueue: "httpsms-desktop:messages:enqueue",
+  messagesCancel: "httpsms-desktop:messages:cancel",
+  messagesRefreshStatuses: "httpsms-desktop:messages:refresh-statuses",
+  campaignsList: "httpsms-desktop:campaigns:list",
+  campaignsCreate: "httpsms-desktop:campaigns:create",
+  settingsGet: "httpsms-desktop:settings:get",
+  settingsSave: "httpsms-desktop:settings:save",
+  settingsTestProvider: "httpsms-desktop:settings:test-provider",
+  backupExport: "httpsms-desktop:backup:export",
+  backupImport: "httpsms-desktop:backup:import",
 });
 const invoke = (channel, input) => ipcRenderer.invoke(channel, input);
 
 contextBridge.exposeInMainWorld(
-  "nabdaDesktop",
+  "httpSmsDesktop",
   Object.freeze({
     dashboard: Object.freeze({ get: () => invoke(channels.dashboardGet) }),
     customers: Object.freeze({
@@ -41,17 +40,16 @@ contextBridge.exposeInMainWorld(
       list: (input) => invoke(channels.messagesList, input),
       enqueue: (input) => invoke(channels.messagesEnqueue, input),
       cancel: (input) => invoke(channels.messagesCancel, input),
+      refreshStatuses: (input) => invoke(channels.messagesRefreshStatuses, input),
     }),
-    devices: Object.freeze({
-      list: () => invoke(channels.devicesList),
-      createPairing: () => invoke(channels.devicesCreatePairing),
-      revoke: (input) => invoke(channels.devicesRevoke, input),
-      testHeartbeat: (input) => invoke(channels.devicesTestHeartbeat, input),
+    campaigns: Object.freeze({
+      list: () => invoke(channels.campaignsList),
+      create: (input) => invoke(channels.campaignsCreate, input),
     }),
     settings: Object.freeze({
       get: () => invoke(channels.settingsGet),
       save: (input) => invoke(channels.settingsSave, input),
-      testProvider: (input) => invoke(channels.settingsTestProvider, input),
+      testProvider: () => invoke(channels.settingsTestProvider),
     }),
     backup: Object.freeze({
       export: () => invoke(channels.backupExport),

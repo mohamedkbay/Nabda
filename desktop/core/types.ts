@@ -27,22 +27,10 @@ export interface ContactRecord {
   updatedAt: string;
 }
 
-export interface DeviceRecord {
-  id: string;
-  name: string;
-  installationId: string | null;
-  platform: string | null;
-  appVersion: string | null;
-  status: "pending" | "connected" | "offline" | "revoked";
-  lastSeenAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface DesktopMessageRecord {
   id: string;
   contactId: string | null;
-  deviceId: string | null;
+  campaignId: string | null;
   to: string;
   content: string;
   status: DesktopMessageStatus;
@@ -61,6 +49,16 @@ export interface MessageEventRecord {
   createdAt: string;
 }
 
+export interface CampaignRecord {
+  id: string;
+  name: string;
+  content: string;
+  status: "draft" | "scheduled" | "running" | "completed" | "cancelled";
+  scheduledAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface QueueJobRecord {
   id: string;
   messageId: string;
@@ -69,17 +67,4 @@ export interface QueueJobRecord {
   availableAt: string;
   lockedAt: string | null;
   lastError: string | null;
-}
-
-export interface PairingOffer {
-  pairingId: string;
-  code: string;
-  expiresAt: string;
-  pairingUri: string;
-  desktopId: string;
-}
-
-export interface PairedDeviceCredentials {
-  device: DeviceRecord;
-  token: string;
 }

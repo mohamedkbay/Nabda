@@ -270,7 +270,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     readFile(resolve(assetsDirectory, "nabda-og.png")),
   ]);
 
-  const androidAgentEnabled = options.androidAgentEnabled ?? true;
+  // The custom phone-agent protocol is legacy-only and is never registered by default.
+  const androidAgentEnabled = options.androidAgentEnabled ?? false;
   const androidAgentLiveReportingEnabled = options.androidAgentLiveReportingEnabled ?? false;
   const executionMode = options.providerMode === "httpsms" || androidAgentLiveReportingEnabled
     ? "live"
@@ -440,7 +441,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     .header("content-disposition", 'attachment; filename="nabda-local.postman_environment.json"')
     .send(postmanEnvironment));
 
-  await app.register(async (device) => {
+  if (androidAgentEnabled) await app.register(async (device) => {
     device.addHook("preHandler", async (request) => {
       if (!androidAgentEnabled) {
         throw new AppError(503, "device_agent_disabled", "The Android device agent is disabled on this server.");

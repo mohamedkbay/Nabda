@@ -7,13 +7,12 @@ const REQUIRED_TABLES = [
   "clients",
   "contacts",
   "opt_outs",
-  "devices",
-  "device_credentials",
-  "pairing_sessions",
   "settings",
   "messages",
   "message_events",
   "queue_jobs",
+  "campaigns",
+  "campaign_recipients",
 ] as const;
 
 export class DesktopDatabase {

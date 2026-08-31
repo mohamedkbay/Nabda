@@ -18,17 +18,16 @@ const api = Object.freeze({
     list: (input: unknown) => invoke(IPC_CHANNELS.messagesList, input),
     enqueue: (input: unknown) => invoke(IPC_CHANNELS.messagesEnqueue, input),
     cancel: (input: unknown) => invoke(IPC_CHANNELS.messagesCancel, input),
+    refreshStatuses: (input: unknown) => invoke(IPC_CHANNELS.messagesRefreshStatuses, input),
   }),
-  devices: Object.freeze({
-    list: () => invoke(IPC_CHANNELS.devicesList),
-    createPairing: () => invoke(IPC_CHANNELS.devicesCreatePairing),
-    revoke: (input: unknown) => invoke(IPC_CHANNELS.devicesRevoke, input),
-    testHeartbeat: (input: unknown) => invoke(IPC_CHANNELS.devicesTestHeartbeat, input),
+  campaigns: Object.freeze({
+    list: () => invoke(IPC_CHANNELS.campaignsList),
+    create: (input: unknown) => invoke(IPC_CHANNELS.campaignsCreate, input),
   }),
   settings: Object.freeze({
     get: () => invoke(IPC_CHANNELS.settingsGet),
     save: (input: unknown) => invoke(IPC_CHANNELS.settingsSave, input),
-    testProvider: (input: unknown) => invoke(IPC_CHANNELS.settingsTestProvider, input),
+    testProvider: () => invoke(IPC_CHANNELS.settingsTestProvider),
   }),
   backup: Object.freeze({
     export: () => invoke(IPC_CHANNELS.backupExport),
@@ -36,4 +35,4 @@ const api = Object.freeze({
   }),
 });
 
-contextBridge.exposeInMainWorld("nabdaDesktop", api);
+contextBridge.exposeInMainWorld("httpSmsDesktop", api);

@@ -140,7 +140,8 @@ describe("health and API-key authentication", () => {
     expect(homepage.headers["content-type"]).toContain("text/html");
     expect(homepage.headers["content-security-policy"]).toContain("default-src 'self'");
     expect(homepage.body).toContain('<html lang="en" dir="ltr">');
-    expect(homepage.body).toContain("Nabda");
+    expect(homepage.body).toContain("httpSMS Desktop");
+    expect(homepage.body).toContain("Unofficial");
 
     const stylesheet = await context.app.inject({ method: "GET", url: "/styles.css" });
     expect(stylesheet.statusCode).toBe(200);
@@ -172,7 +173,7 @@ describe("health and API-key authentication", () => {
       expect(response.statusCode, route).toBe(200);
       expect(response.headers["content-type"], route).toContain("text/html");
       expect(response.headers["cache-control"], route).toBe("no-cache");
-      expect(response.body, route).toMatch(/<title>[^<]*Nabda[^<]*<\/title>/i);
+      expect(response.body, route).toMatch(/<title>[^<]*httpSMS Desktop[^<]*<\/title>/i);
       expect(response.body, route).toMatch(/<h1(?:\s[^>]*)?>/i);
     }
 
@@ -182,25 +183,25 @@ describe("health and API-key authentication", () => {
     }
   });
 
-  it("presents a permanent Free plan instead of a time-limited evaluation", async () => {
+  it("presents the local Desktop client and separates provider costs", async () => {
     const homepage = await context.app.inject({ method: "GET", url: "/" });
     const pricing = await context.app.inject({ method: "GET", url: "/pricing" });
     const gettingStarted = await context.app.inject({ method: "GET", url: "/get-started" });
     const help = await context.app.inject({ method: "GET", url: "/help" });
-    const openApi = await context.app.inject({ method: "GET", url: "/openapi.yaml" });
 
-    expect(homepage.body).toContain("Start free");
-    expect(homepage.body).toContain("0 / 1000 USED");
-    expect(pricing.body).toContain("Free forever");
-    expect(pricing.body).toContain("1,000 accepted message operations per month");
-    expect(gettingStarted.body).toContain("npm run db:free");
-    expect(help.body).toContain("npm run db:free");
-    expect(openApi.body).toContain("plan: free");
+    expect(homepage.body).toContain("httpSMS Desktop");
+    expect(homepage.body).toContain("official httpSMS service and Android app");
+    expect(pricing.body).toContain("No trial timer and no Desktop subscription");
+    expect(pricing.body).toContain("Controlled elsewhere");
+    expect(gettingStarted.body).toContain("Account API Key");
+    expect(gettingStarted.body).toContain("without local pairing");
+    expect(help.body).toContain("No custom phone software");
+    expect(help.body).toContain("GET /v1/users/me");
 
     for (const body of [homepage.body, pricing.body, gettingStarted.body, help.body]) {
       expect(body).not.toContain("db:trial");
-      expect(body).not.toContain("14 DAYS");
-      expect(body).not.toContain("five one-time");
+      expect(body).not.toContain("Nabda");
+      expect(body).not.toContain("نبضة");
     }
   });
 

@@ -3,10 +3,10 @@ import type { StatementSync } from "node:sqlite";
 import { DesktopDatabase } from "./database.js";
 import type {
   ClientRecord,
+  CampaignRecord,
   ContactRecord,
   DesktopMessageRecord,
   DesktopMessageStatus,
-  DeviceRecord,
   MessageEventRecord,
   QueueJobRecord,
 } from "./types.js";
@@ -78,25 +78,11 @@ function contactFromRow(row: Record<string, SqlValue>): ContactRecord {
   };
 }
 
-function deviceFromRow(row: Record<string, SqlValue>): DeviceRecord {
-  return {
-    id: String(row.id),
-    name: String(row.name),
-    installationId: row.installation_id === null ? null : String(row.installation_id),
-    platform: row.platform === null ? null : String(row.platform),
-    appVersion: row.app_version === null ? null : String(row.app_version),
-    status: String(row.status) as DeviceRecord["status"],
-    lastSeenAt: row.last_seen_at === null ? null : String(row.last_seen_at),
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
-  };
-}
-
 function messageFromRow(row: Record<string, SqlValue>): DesktopMessageRecord {
   return {
     id: String(row.id),
     contactId: row.contact_id === null ? null : String(row.contact_id),
-    deviceId: row.device_id === null ? null : String(row.device_id),
+    campaignId: row.campaign_id === null ? null : String(row.campaign_id),
     to: String(row.phone),
     content: String(row.content),
     status: String(row.status) as DesktopMessageStatus,
@@ -209,52 +195,6 @@ export class DesktopRepository {
     }));
   }
 
-  createDevice(input: {
-    name: string;
-    installationId?: string;
-    platform?: string;
-    appVersion?: string;
-    status?: DeviceRecord["status"];
-    now?: Date;
-  }): DeviceRecord {
-    const id = randomUUID();
-    const at = nowIso(input.now);
-    this.database.db
-      .prepare(
-        "INSERT INTO devices(id, name, installation_id, platform, app_version, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      )
-      .run(
-        id,
-        requiredText(input.name, "Device name", 200),
-        optionalText(input.installationId, 200),
-        optionalText(input.platform, 40),
-        optionalText(input.appVersion, 40),
-        input.status ?? "pending",
-        at,
-        at,
-      );
-    return this.getDevice(id) as DeviceRecord;
-  }
-
-  getDevice(id: string): DeviceRecord | null {
-    const row = this.database.db.prepare("SELECT * FROM devices WHERE id = ?").get(id) as Record<string, SqlValue> | undefined;
-    return row ? deviceFromRow(row) : null;
-  }
-
-  listDevices(): DeviceRecord[] {
-    return (this.database.db.prepare("SELECT * FROM devices ORDER BY created_at DESC").all() as Record<string, SqlValue>[]).map(
-      deviceFromRow,
-    );
-  }
-
-  updateDeviceStatus(id: string, status: DeviceRecord["status"], now: Date = new Date()): DeviceRecord | null {
-    const at = nowIso(now);
-    const result = this.database.db
-      .prepare("UPDATE devices SET status = ?, last_seen_at = CASE WHEN ? = 'connected' THEN ? ELSE last_seen_at END, updated_at = ? WHERE id = ?")
-      .run(status, status, at, at, id);
-    return result.changes === 0 ? null : this.getDevice(id);
-  }
-
   setSetting(key: string, value: unknown, now: Date = new Date()): void {
     if (!/^[a-z][a-z0-9._-]{1,79}$/i.test(key)) throw new Error("Invalid setting key");
     if (/(secret|token|password|api.?key)/i.test(key)) throw new Error("Secrets must use SecretStore");
@@ -274,7 +214,7 @@ export class DesktopRepository {
 
   createMessage(input: {
     contactId?: string;
-    deviceId?: string;
+    campaignId?: string;
     to: string;
     content: string;
     scheduledAt?: Date;
@@ -286,15 +226,19 @@ export class DesktopRepository {
     const jobId = randomUUID();
     const at = nowIso(input.now);
     const scheduledAt = nowIso(input.scheduledAt ?? input.now);
+    const maxScheduledAt = new Date((input.now ?? new Date()).getTime() + 20 * 24 * 60 * 60 * 1000);
+    if ((input.scheduledAt ?? input.now ?? new Date()).getTime() > maxScheduledAt.getTime()) {
+      throw new Error("Messages may be scheduled at most 20 days ahead");
+    }
     return runTransaction(this.database, () => {
       this.database.db
         .prepare(
-          "INSERT INTO messages(id, contact_id, device_id, phone, content, status, scheduled_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?)",
+          "INSERT INTO messages(id, contact_id, campaign_id, phone, content, status, scheduled_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?)",
         )
         .run(
           id,
           input.contactId ?? null,
-          input.deviceId ?? null,
+          input.campaignId ?? null,
           phone,
           requiredText(input.content, "Message content", 4000),
           scheduledAt,
@@ -403,6 +347,86 @@ export class DesktopRepository {
       const message = this.getMessage(input.messageId);
       if (!message) throw new Error("Message disappeared during dispatch");
       return message;
+    });
+  }
+
+  recordProviderStatus(input: {
+    messageId: string;
+    status: "sent" | "delivered" | "failed" | "expired";
+    failureReason?: string;
+    payload: Record<string, unknown>;
+    now?: Date;
+  }): DesktopMessageRecord | null {
+    return runTransaction(this.database, () => {
+      const at = nowIso(input.now);
+      const result = this.database.db
+        .prepare("UPDATE messages SET status = ?, failure_reason = ?, updated_at = ? WHERE id = ? AND status IN ('sent', 'delivered')")
+        .run(input.status, input.failureReason ?? null, at, input.messageId);
+      if (result.changes !== 1) return null;
+      this.addMessageEventStatement().run(randomUUID(), input.messageId, input.status, JSON.stringify(input.payload), at);
+      return this.getMessage(input.messageId);
+    });
+  }
+
+  queueCampaign(input: {
+    name: string;
+    content: string;
+    recipients: Array<{ contactId?: string; to: string; consentReference: string }>;
+    sendAt: Date;
+    maxRecipients?: number;
+    now?: Date;
+  }): { campaign: CampaignRecord; queued: number; skippedOptOut: number } {
+    const now = input.now ?? new Date();
+    const maxRecipients = Math.max(1, Math.min(5_000, Math.trunc(input.maxRecipients ?? 5_000)));
+    if (input.recipients.length < 1 || input.recipients.length > maxRecipients) throw new Error("Campaign recipient limit exceeded");
+    if (input.sendAt.getTime() > now.getTime() + 20 * 24 * 60 * 60 * 1000) throw new Error("Campaigns may be scheduled at most 20 days ahead");
+    const normalized = input.recipients.map((recipient) => ({
+      ...recipient,
+      to: normalizeDesktopPhone(recipient.to),
+      consentReference: requiredText(recipient.consentReference, "Consent reference", 500),
+    }));
+    const campaignId = randomUUID();
+    const at = nowIso(now);
+    const scheduledAt = nowIso(input.sendAt);
+    const content = requiredText(input.content, "Campaign content", 4000);
+    return runTransaction(this.database, () => {
+      this.database.db
+        .prepare("INSERT INTO campaigns(id, name, content, scheduled_at, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'scheduled', ?, ?)")
+        .run(campaignId, requiredText(input.name, "Campaign name", 200), content, scheduledAt, at, at);
+      let queued = 0;
+      let skippedOptOut = 0;
+      for (const recipient of normalized) {
+        const optedOut = this.isOptedOut(recipient.to);
+        const messageId = optedOut ? null : randomUUID();
+        if (optedOut || !messageId) {
+          this.database.db
+            .prepare("INSERT INTO campaign_recipients(id, campaign_id, contact_id, phone, consent_reference, status, message_id, created_at) VALUES (?, ?, ?, ?, ?, 'opted_out', NULL, ?)")
+            .run(randomUUID(), campaignId, recipient.contactId ?? null, recipient.to, recipient.consentReference, at);
+          skippedOptOut += 1;
+          continue;
+        }
+        this.database.db
+          .prepare("INSERT INTO messages(id, contact_id, campaign_id, phone, content, status, scheduled_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?)")
+          .run(messageId, recipient.contactId ?? null, campaignId, recipient.to, content, scheduledAt, at, at);
+        this.addMessageEventStatement().run(randomUUID(), messageId, "queued", JSON.stringify({ campaignId }), at);
+        this.database.db
+          .prepare("INSERT INTO queue_jobs(id, message_id, status, attempts, available_at, created_at, updated_at) VALUES (?, ?, 'pending', 0, ?, ?, ?)")
+          .run(randomUUID(), messageId, scheduledAt, at, at);
+        this.database.db
+          .prepare("INSERT INTO campaign_recipients(id, campaign_id, contact_id, phone, consent_reference, status, message_id, created_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)")
+          .run(randomUUID(), campaignId, recipient.contactId ?? null, recipient.to, recipient.consentReference, messageId, at);
+        queued += 1;
+      }
+      const campaign: CampaignRecord = {
+        id: campaignId,
+        name: requiredText(input.name, "Campaign name", 200),
+        content,
+        status: "scheduled",
+        scheduledAt,
+        createdAt: at,
+        updatedAt: at,
+      };
+      return { campaign, queued, skippedOptOut };
     });
   }
 

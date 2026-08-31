@@ -1,6 +1,5 @@
 import { basename } from "node:path";
 import { dialog, type BrowserWindow, type IpcMain, type IpcMainInvokeEvent } from "electron";
-import QRCode from "qrcode";
 import { z } from "zod";
 import type { DesktopServices } from "../contracts.js";
 import type { SecretVault } from "../security/secret-vault.js";
@@ -11,7 +10,6 @@ const optionalPhone = z.string().trim().min(3).max(32).optional();
 const phone = z.string().trim().min(3).max(32);
 const shortText = z.string().trim().min(1).max(200);
 const optionalShortText = z.string().trim().max(500).optional();
-const provider = z.enum(["mock", "httpsms"]);
 
 const customerCreateSchema = z
   .object({ name: shortText, phone: optionalPhone, notes: optionalShortText })
@@ -31,15 +29,17 @@ const enqueueSchema = z
     contactId: z.string().uuid().optional(),
     to: phone,
     body: z.string().trim().min(1).max(1_600),
+    sendAt: z.string().datetime({ offset: true }).optional(),
+    encrypted: z.boolean(),
+    requestId: z.string().trim().min(1).max(200).optional(),
     consentConfirmed: z.literal(true),
   })
   .strict();
 const settingsSchema = z
   .object({
-    provider,
-    providerEndpoint: z.string().url().max(2_048).optional(),
-    senderLabel: z.string().trim().max(50).optional(),
-    startWorkerOnLaunch: z.boolean(),
+    from: z.string().regex(/^\+[1-9]\d{6,14}$/).optional(),
+    encryptedDefault: z.boolean(),
+    statusPollingSeconds: z.number().int().min(15).max(300),
     secret: z.string().min(8).max(4_096).optional(),
     clearSecret: z.boolean().optional(),
   })
@@ -47,9 +47,15 @@ const settingsSchema = z
   .refine((value) => !(value.secret && value.clearSecret), {
     message: "Secret and clearSecret cannot be used together.",
   });
-const providerTestSchema = z
-  .object({ provider, endpoint: z.string().url().max(2_048).optional() })
-  .strict();
+const campaignCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  body: z.string().trim().min(1).max(1_600),
+  contactIds: z.array(z.string().uuid()).min(1).max(500),
+  startsAt: z.string().datetime({ offset: true }),
+  messagesPerMinute: z.number().int().min(1).max(10),
+  encrypted: z.boolean(),
+  consentConfirmed: z.literal(true),
+}).strict();
 
 export interface IpcRegistrationOptions {
   ipcMain: Pick<IpcMain, "handle" | "removeHandler">;
@@ -57,7 +63,6 @@ export interface IpcRegistrationOptions {
   rendererUrl: string;
   services: DesktopServices;
   secretVault: SecretVault;
-  getLanOrigin: () => string;
 }
 
 export function registerIpcHandlers(options: IpcRegistrationOptions): () => void {
@@ -106,30 +111,21 @@ export function registerIpcHandlers(options: IpcRegistrationOptions): () => void
     services.messages.enqueue({
       to: input.to,
       body: input.body,
+      encrypted: input.encrypted,
       consentConfirmed: true,
       ...(input.contactId ? { contactId: input.contactId } : {}),
+      ...(input.sendAt ? { sendAt: input.sendAt } : {}),
+      ...(input.requestId ? { requestId: input.requestId } : {}),
     }),
   );
   register(IPC_CHANNELS.messagesCancel, idSchema, (input) => services.messages.cancel(input));
-  register(IPC_CHANNELS.devicesList, emptySchema, () => services.devices.list());
-  register(IPC_CHANNELS.devicesCreatePairing, emptySchema, async () => {
-    const session = await services.devices.createPairingSession({
-      ttlSeconds: 300,
-      lanOrigin: options.getLanOrigin(),
-    });
-    const qrDataUrl = await QRCode.toDataURL(session.pairingUri, {
-      errorCorrectionLevel: "M",
-      margin: 2,
-      width: 320,
-      color: { dark: "#102d29", light: "#ffffff" },
-    });
-    return { ...session, qrDataUrl };
+  register(IPC_CHANNELS.messagesRefreshStatuses, messageListSchema, async ({ limit }) => {
+    const secret = await options.secretVault.read();
+    if (!secret) throw new PublicDesktopError("احفظ Account API Key أولًا.");
+    return services.messages.refreshStatuses({ limit, secret });
   });
-  register(IPC_CHANNELS.devicesRevoke, idSchema, async (input) => {
-    await services.devices.revoke(input);
-    return { ok: true };
-  });
-  register(IPC_CHANNELS.devicesTestHeartbeat, idSchema, (input) => services.devices.testHeartbeat(input));
+  register(IPC_CHANNELS.campaignsList, emptySchema, () => services.campaigns.list());
+  register(IPC_CHANNELS.campaignsCreate, campaignCreateSchema, (input) => services.campaigns.create(input));
   register(IPC_CHANNELS.settingsGet, emptySchema, async () => {
     const settings = await services.settings.get();
     return { ...settings, secretConfigured: await options.secretVault.hasSecret() };
@@ -138,30 +134,26 @@ export function registerIpcHandlers(options: IpcRegistrationOptions): () => void
     if (clearSecret) await options.secretVault.clear();
     if (secret) await options.secretVault.save(secret);
     const saved = await services.settings.save({
-      provider: settings.provider,
-      startWorkerOnLaunch: settings.startWorkerOnLaunch,
-      ...(settings.providerEndpoint ? { providerEndpoint: settings.providerEndpoint } : {}),
-      ...(settings.senderLabel ? { senderLabel: settings.senderLabel } : {}),
+      encryptedDefault: settings.encryptedDefault,
+      statusPollingSeconds: settings.statusPollingSeconds,
+      ...(settings.from ? { from: settings.from } : {}),
     });
     return { ...saved, secretConfigured: await options.secretVault.hasSecret() };
   });
-  register(IPC_CHANNELS.settingsTestProvider, providerTestSchema, async (input) => {
-    const secret = input.provider === "mock" ? undefined : await options.secretVault.read();
-    if (input.provider !== "mock" && !secret) {
-      return { ok: false, message: "No provider secret is saved.", checkedAt: new Date().toISOString() };
+  register(IPC_CHANNELS.settingsTestProvider, emptySchema, async () => {
+    const secret = await options.secretVault.read();
+    if (!secret) {
+      return { ok: false, message: "لا يوجد Account API Key محفوظ.", checkedAt: new Date().toISOString() };
     }
-    // Deliberately calls a metadata-only method: no recipient/body parameters exist.
-    return services.settings.testProviderConnection({
-      provider: input.provider,
-      ...(secret ? { secret } : {}),
-      ...(input.endpoint ? { endpoint: input.endpoint } : {}),
-    });
+    // GET /users/me is read-only: no recipient, body or send endpoint is involved.
+    const settings = await services.settings.get();
+    return services.settings.testProviderConnection({ secret, ...(settings.from ? { from: settings.from } : {}) });
   });
   register(IPC_CHANNELS.backupExport, emptySchema, async () => {
     const result = await dialog.showSaveDialog(options.window, {
       title: "تصدير نسخة احتياطية",
-      defaultPath: `nabda-backup-${new Date().toISOString().slice(0, 10)}.nabda`,
-      filters: [{ name: "Nabda backup", extensions: ["nabda"] }],
+      defaultPath: `httpsms-desktop-backup-${new Date().toISOString().slice(0, 10)}.httpsms-backup`,
+      filters: [{ name: "httpSMS Desktop backup", extensions: ["httpsms-backup"] }],
       properties: ["createDirectory", "showOverwriteConfirmation"],
     });
     if (result.canceled || !result.filePath) return { ok: false, cancelled: true };
@@ -170,7 +162,7 @@ export function registerIpcHandlers(options: IpcRegistrationOptions): () => void
   register(IPC_CHANNELS.backupImport, emptySchema, async () => {
     const picked = await dialog.showOpenDialog(options.window, {
       title: "استيراد نسخة احتياطية",
-      filters: [{ name: "Nabda backup", extensions: ["nabda"] }],
+      filters: [{ name: "httpSMS Desktop backup", extensions: ["httpsms-backup"] }],
       properties: ["openFile", "dontAddToRecent"],
     });
     const sourcePath = picked.filePaths[0];

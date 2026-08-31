@@ -14,10 +14,8 @@ import { WebhookProcessor } from "./worker/webhook-processor.js";
 
 const config = loadConfig();
 const pool = createPostgresPool(config.DATABASE_URL, config.DB_POOL_MAX);
-const executionMode = config.PROVIDER_MODE === "httpsms" || config.ENABLE_ANDROID_AGENT_LIVE_REPORTING
-  ? "live"
-  : "simulation";
-const repository = new PostgresRepository(pool, config.PROVIDER_MODE, config.ENABLE_ANDROID_AGENT, executionMode);
+const executionMode = config.PROVIDER_MODE === "httpsms" ? "live" : "simulation";
+const repository = new PostgresRepository(pool, config.PROVIDER_MODE, false, executionMode);
 const retentionCleaner = new MessageRetentionCleaner(
   pool,
   config.CLEANUP_INTERVAL_MS,

@@ -31,7 +31,7 @@ const schema = z.object({
   APP_ENCRYPTION_KEY: z.string().min(1),
   PROVIDER_MODE: z.enum(["mock", "httpsms"]).default("mock"),
   ENABLE_LIVE_SMS: booleanFromString.default(false),
-  ENABLE_ANDROID_AGENT: booleanFromString.default(true),
+  ENABLE_ANDROID_AGENT: booleanFromString.default(false),
   ENABLE_ANDROID_AGENT_LIVE_REPORTING: booleanFromString.default(false),
   HTTPSMS_API_BASE: z.string().url().default("https://api.httpsms.com/v1"),
   PROVIDER_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(15_000),

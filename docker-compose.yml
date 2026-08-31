@@ -14,8 +14,6 @@ x-app-environment: &app-environment
   # بيئة Compose هذه للتطوير فقط، ولذلك تمنع أي إرسال حقيقي قسرًا.
   PROVIDER_MODE: mock
   ENABLE_LIVE_SMS: "false"
-  ENABLE_ANDROID_AGENT: "true"
-  ENABLE_ANDROID_AGENT_LIVE_REPORTING: "false"
   HTTPSMS_API_BASE: https://api.httpsms.com/v1
   PROVIDER_TIMEOUT_MS: ${PROVIDER_TIMEOUT_MS:-15000}
   DISPATCH_MIN_INTERVAL_MS: ${DISPATCH_MIN_INTERVAL_MS:-3000}
@@ -26,7 +24,6 @@ x-app-environment: &app-environment
   RATE_LIMIT_FAIL_OPEN: "false"
   IP_REQUESTS_PER_MINUTE: ${IP_REQUESTS_PER_MINUTE:-1200}
   API_KEY_REQUESTS_PER_MINUTE: ${API_KEY_REQUESTS_PER_MINUTE:-600}
-  DEVICE_REQUESTS_PER_MINUTE: ${DEVICE_REQUESTS_PER_MINUTE:-120}
   ORGANIZATION_WRITES_PER_MINUTE: ${ORGANIZATION_WRITES_PER_MINUTE:-60}
   WEBHOOK_TIMEOUT_MS: ${WEBHOOK_TIMEOUT_MS:-10000}
   SEED_ORG_NAME: ${SEED_ORG_NAME:-شركة تجريبية}
@@ -35,9 +32,6 @@ x-app-environment: &app-environment
   FREE_ORG_NAME: ${FREE_ORG_NAME:-Local Free Organization}
   FREE_ORG_SLUG: ${FREE_ORG_SLUG:-local-free}
   FREE_ADMIN_EMAIL: ${FREE_ADMIN_EMAIL:-free@example.invalid}
-  DEVICE_AGENT_ORG_SLUG: ${DEVICE_AGENT_ORG_SLUG:-local-free}
-  DEVICE_AGENT_IDENTITY: ${DEVICE_AGENT_IDENTITY:-local-android-agent}
-  DEVICE_AGENT_NAME: ${DEVICE_AGENT_NAME:-Nabda Android Device}
 
 x-app-service: &app-service
   build:
