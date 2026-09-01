@@ -14,6 +14,7 @@ const REQUIRED_TABLES = [
   "campaigns",
   "campaign_recipients",
 ] as const;
+const CONTROLLER_TABLES = ["controller_devices", "device_claims", "device_event_receipts"] as const;
 
 export class DesktopDatabase {
   readonly path: string;
@@ -93,7 +94,8 @@ export class DesktopDatabase {
       if (!integrity || !Object.values(integrity).includes("ok")) throw new Error("Backup integrity check failed");
 
       const version = candidate.prepare("PRAGMA user_version").get() as Record<string, unknown> | undefined;
-      if (Number(Object.values(version ?? {})[0]) > DESKTOP_SCHEMA_VERSION) {
+      const schemaVersion = Number(Object.values(version ?? {})[0]);
+      if (schemaVersion > DESKTOP_SCHEMA_VERSION) {
         throw new Error("Backup was created by a newer application version");
       }
       const tableRows = candidate
@@ -101,6 +103,7 @@ export class DesktopDatabase {
         .all() as Array<{ name: string }>;
       const tables = new Set(tableRows.map((row) => row.name));
       if (REQUIRED_TABLES.some((table) => !tables.has(table))) throw new Error("Backup schema is incomplete");
+      if (schemaVersion >= 4 && CONTROLLER_TABLES.some((table) => !tables.has(table))) throw new Error("Backup controller schema is incomplete");
     } finally {
       candidate.close();
     }

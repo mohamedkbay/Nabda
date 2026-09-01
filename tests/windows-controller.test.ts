@@ -1,0 +1,92 @@
+import { randomUUID } from "node:crypto";
+import { afterEach, describe, expect, it } from "vitest";
+import { LocalController } from "../desktop/controller/controller.js";
+import { startControllerServer, type ControllerServer } from "../desktop/controller/server.js";
+import { DesktopDatabase } from "../desktop/core/database.js";
+
+const databases: DesktopDatabase[] = [];
+const servers: ControllerServer[] = [];
+
+function setup() {
+  const database = new DesktopDatabase(":memory:");
+  databases.push(database);
+  return { database, controller: new LocalController(database) };
+}
+
+afterEach(async () => {
+  while (servers.length) await servers.pop()?.close();
+  while (databases.length) databases.pop()?.close();
+});
+
+describe("Windows browser controller", () => {
+  it("stores only a hashed device token and completes the one-message Android lease flow", () => {
+    const { database, controller } = setup();
+    controller.createContact({
+      name: "Amina", phone: "+218910000001", consent_reference: "contract-1", consent_confirmed: true,
+    });
+    const message = controller.createMessage({
+      to: "+218910000001", content: "Expected appointment reminder", consent_confirmed: true,
+    });
+    const provisioned = controller.provisionDevice("Office phone");
+    const stored = database.db.prepare("SELECT token_hash FROM controller_devices WHERE id = ?").get(provisioned.id) as { token_hash: string };
+    expect(stored.token_hash).not.toContain(provisioned.token);
+    expect(stored.token_hash).toMatch(/^[a-f0-9]{64}$/);
+
+    expect(() => controller.setLiveEnabled(true, "wrong")).toThrow("ENABLE_LIVE_SMS");
+    controller.setLiveEnabled(true, "ENABLE_LIVE_SMS");
+    const principal = controller.authenticateDevice(provisioned.token);
+    expect(controller.heartbeat(principal, { simulated: false, app_version: "0.1.0", android_version: "15" }))
+      .toMatchObject({ device_id: provisioned.id, live_reporting_enabled: true });
+
+    const claimed = controller.claim(principal, { simulated: false, limit: 1 });
+    expect(claimed.messages).toHaveLength(1);
+    expect(claimed.messages[0]).toMatchObject({ id: message.id, to: "+218910000001", execution_mode: "live" });
+    const lease = claimed.messages[0]?.lease_token as string;
+    const attempt = randomUUID();
+    expect(controller.begin(principal, message.id, { simulated: false, lease_token: lease, attempt_id: attempt }))
+      .toEqual({ authorized: true, duplicate: false, attempt_id: attempt });
+
+    const event = {
+      simulated: false, lease_token: lease, attempt_id: attempt, event_id: randomUUID(), status: "sent",
+      occurred_at: new Date().toISOString(), provider_message_id: "android_test",
+    };
+    expect(controller.event(principal, message.id, event)).toMatchObject({ accepted: true, duplicate: false, status: "sent" });
+    expect(controller.event(principal, message.id, event)).toMatchObject({ accepted: true, duplicate: true, status: "sent" });
+    expect(() => controller.event(principal, message.id, { ...event, status: "failed" })).toThrow("different data");
+    expect(controller.repository.getMessage(message.id)?.status).toBe("sent");
+  });
+
+  it("keeps opted-out work away from the phone and queues campaigns on the computer", () => {
+    const { controller } = setup();
+    const first = controller.createContact({ name: "One", phone: "+218910000011", consent_reference: "ticket-1", consent_confirmed: true });
+    const second = controller.createContact({ name: "Two", phone: "+218910000012", consent_reference: "ticket-2", consent_confirmed: true });
+    controller.setOptOut(second.id, true);
+    const campaign = controller.createCampaign({
+      name: "Service notice", content: "Expected service notice", contact_ids: [first.id, second.id], consent_confirmed: true,
+    });
+    expect(campaign).toMatchObject({ queued: 1, skippedOptOut: 1 });
+    expect(controller.getDashboard("http://192.168.1.20:3210").counts.queued).toBe(1);
+  });
+
+  it("serves health publicly but locks the browser dashboard behind a loopback session", async () => {
+    const { controller } = setup();
+    const server = await startControllerServer({ controller, lanAddress: "192.168.1.20", port: 0 });
+    servers.push(server);
+    const base = `http://127.0.0.1:${server.port}`;
+    const health = await fetch(`${base}/health`);
+    expect(health.status).toBe(200);
+    await expect(health.json()).resolves.toMatchObject({ status: "ok", delivery_mode: "android_lan" });
+    expect((await fetch(`${base}/`)).status).toBe(401);
+
+    const unlocked = await fetch(server.dashboardUrl, { redirect: "manual" });
+    expect(unlocked.status).toBe(302);
+    const cookie = unlocked.headers.get("set-cookie")?.split(";", 1)[0];
+    expect(cookie).toMatch(/^nbda_control=/);
+    const page = await fetch(`${base}/`, { headers: { cookie: cookie as string } });
+    expect(page.status).toBe(200);
+    expect(await page.text()).toContain("Nabda Controller");
+    const state = await fetch(`${base}/control-api/state`, { headers: { cookie: cookie as string } });
+    expect(state.status).toBe(200);
+    await expect(state.json()).resolves.toMatchObject({ system: { lan_url: `http://192.168.1.20:${server.port}` } });
+  });
+});

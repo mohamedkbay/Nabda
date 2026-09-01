@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#f2f4ef" />
+  <title>Nabda Controller</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#overview" aria-label="Nabda Controller home"><i><span></span></i><span><strong>Nabda</strong><small>Windows Controller</small></span></a>
+    <nav aria-label="Controller navigation">
+      <a href="#overview">Overview</a><a href="#messages">Messages</a><a href="#contacts">Contacts</a><a href="#campaign">Campaign</a><a href="#device">Device</a>
+    </nav>
+    <span class="system-pill"><i></i><b id="system-label">Starting</b></span>
+  </header>
+
+  <main>
+    <section class="hero" id="overview">
+      <div><p class="kicker">LOCAL MESSAGE CONTROL PLANE</p><h1>Your phone.<br><em>Your queue.</em><br>One quiet controller.</h1><p>Nabda runs in the Windows background. This browser controls the queue while the Android phone claims one message at a time over your private network.</p></div>
+      <div class="signal-card">
+        <span class="signal-head"><small>DEVICE ROUTE</small><b id="route-status">Waiting for setup</b></span>
+        <div class="route"><span>Browser</span><i></i><span>Windows</span><i></i><span>Android SIM</span></div>
+        <dl><div><dt>Server</dt><dd id="lan-url">—</dd></div><div><dt>Last heartbeat</dt><dd id="last-seen">Never</dd></div><div><dt>Sending</dt><dd id="live-state">Locked</dd></div></dl>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="System metrics">
+      <article><small>MONTHLY USE</small><strong><span id="used-count">0</span> / 5000</strong><div class="meter"><i id="usage-meter"></i></div></article>
+      <article><small>WAITING</small><strong id="queued-count">0</strong><p>Stored on this computer</p></article>
+      <article><small>SENT</small><strong id="sent-count">0</strong><p>Accepted by Android</p></article>
+      <article><small>ATTENTION</small><strong id="failed-count">0</strong><p>Failed or cancelled</p></article>
+    </section>
+
+    <section class="workspace" id="messages">
+      <header><div><p class="kicker">MESSAGE QUEUE</p><h2>Send one expected message</h2></div><span>10 operations / minute</span></header>
+      <div class="split">
+        <form id="message-form" class="panel form-panel">
+          <label>Recipient<select id="message-contact"><option value="">Enter a number manually</option></select></label>
+          <label>Phone number<input name="to" id="message-phone" inputmode="tel" placeholder="+2189XXXXXXXX" required /></label>
+          <label>Message<textarea name="content" rows="4" maxlength="160" required placeholder="Expected transactional message"></textarea><small>One SMS segment: 160 GSM characters or 70 Unicode characters.</small></label>
+          <label>Schedule (optional)<input name="send_at" type="datetime-local" /></label>
+          <label class="check"><input name="consent" type="checkbox" required /><span>I confirm this recipient expects this message.</span></label>
+          <button class="primary" type="submit">Add to queue <b>↗</b></button>
+        </form>
+        <div class="panel table-panel"><div class="panel-title"><h3>Recent messages</h3><button class="quiet" type="button" data-refresh>Refresh</button></div><div class="table-scroll"><table><thead><tr><th>Recipient</th><th>Message</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody id="messages-table"></tbody></table></div><p id="messages-empty" class="empty">No messages yet.</p></div>
+      </div>
+    </section>
+
+    <section class="workspace soft" id="contacts">
+      <header><div><p class="kicker">RECIPIENT DIRECTORY</p><h2>Contacts and stop decisions</h2></div><span id="contacts-count">0 contacts</span></header>
+      <div class="split narrow-form">
+        <form id="contact-form" class="panel form-panel">
+          <label>Name<input name="name" maxlength="200" required /></label>
+          <label>Phone<input name="phone" inputmode="tel" placeholder="+2189XXXXXXXX" required /></label>
+          <label>Consent reference<input name="consent_reference" maxlength="500" placeholder="Contract, ticket, or account reference" required /></label>
+          <label class="check"><input name="consent" type="checkbox" required /><span>I confirm this person expects transactional messages.</span></label>
+          <button class="primary" type="submit">Save contact</button>
+        </form>
+        <div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Name</th><th>Phone</th><th>Consent</th><th>State</th><th></th></tr></thead><tbody id="contacts-table"></tbody></table></div><p id="contacts-empty" class="empty">No contacts saved.</p></div>
+      </div>
+    </section>
+
+    <section class="workspace" id="campaign">
+      <header><div><p class="kicker">CONTROLLED BATCH</p><h2>Queue a contact campaign</h2></div><span>The phone still receives one item at a time</span></header>
+      <form id="campaign-form" class="panel campaign-form">
+        <div class="campaign-fields"><label>Campaign name<input name="name" maxlength="200" required /></label><label>Start time<input name="send_at" type="datetime-local" /></label></div>
+        <label>Message<textarea name="content" rows="3" maxlength="160" required></textarea></label>
+        <fieldset><legend>Expected recipients</legend><div id="campaign-contacts" class="contact-picker"><p class="empty">Save contacts first.</p></div></fieldset>
+        <label class="check"><input name="consent" type="checkbox" required /><span>I confirm every selected recipient expects this message.</span></label>
+        <button class="primary" type="submit">Queue campaign</button>
+      </form>
+    </section>
+
+    <section class="workspace dark" id="device">
+      <header><div><p class="kicker">ANDROID CONNECTION</p><h2>Connect one company phone</h2></div><span id="device-chip">No device</span></header>
+      <div class="device-grid">
+        <article><span>01</span><h3>Create a device token</h3><p>Rotating the token immediately disconnects the previous phone.</p><label>Device name<input id="device-name" value="Company Android" maxlength="100" /></label><button id="provision-device" class="light" type="button">Create / rotate token</button></article>
+        <article><span>02</span><h3>Enter two values on Android</h3><p>Use the LAN APK and keep both devices on the same trusted Wi-Fi.</p><dl class="credentials"><div><dt>Server URL</dt><dd id="device-url">—</dd></div><div><dt>Device token</dt><dd id="device-token">Shown once after rotation</dd></div></dl></article>
+        <article><span>03</span><h3>Unlock carrier sending</h3><p>The queue stays paused until both Windows and Android confirm live sending.</p><label class="check invert"><input id="live-checkbox" type="checkbox" /><span>Enable Android carrier dispatch</span></label><input id="live-confirmation" placeholder="Type ENABLE_LIVE_SMS" autocomplete="off" /><button id="save-live" class="light" type="button">Apply safety state</button></article>
+      </div>
+    </section>
+  </main>
+  <footer><span>Nabda Controller · local SQLite storage</span><span>Keep Windows and Android on a trusted private network.</span></footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -1,86 +1,87 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { app, BrowserWindow, ipcMain, safeStorage, session, shell } from "electron";
-import type { DesktopServices } from "./contracts.js";
-import { registerIpcHandlers } from "./ipc/register-handlers.js";
-import { SecretVault } from "./security/secret-vault.js";
+import { networkInterfaces } from "node:os";
+import { join } from "node:path";
+import { app, dialog, Menu, nativeImage, shell, Tray } from "electron";
+import { LocalController } from "./controller/controller.js";
+import { startControllerServer, type ControllerServer } from "./controller/server.js";
+import { DesktopDatabase } from "./core/database.js";
 
-const moduleDirectory = dirname(fileURLToPath(import.meta.url));
-let mainWindow: BrowserWindow | undefined;
-let disposeIpc: (() => void) | undefined;
+let tray: Tray | undefined;
+let server: ControllerServer | undefined;
+let database: DesktopDatabase | undefined;
+let controller: LocalController | undefined;
+let quitting = false;
 
-export async function runDesktopApp(services: DesktopServices, providedSecretVault?: SecretVault): Promise<void> {
-  const rendererPath = join(moduleDirectory, "renderer", "index.html");
-  const rendererUrl = pathToFileURL(rendererPath).toString();
-  // Sandboxed Electron preload scripts run in a restricted CommonJS context.
-  const preloadPath = join(moduleDirectory, "preload.cjs");
-  const secretVault = providedSecretVault ?? new SecretVault(app.getPath("userData"), safeStorage);
-
-  mainWindow = createMainWindow(preloadPath);
-  disposeIpc = registerIpcHandlers({
-    ipcMain,
-    window: mainWindow,
-    rendererUrl,
-    services,
-    secretVault,
-  });
-  await mainWindow.loadFile(rendererPath);
+function privateIpv4(): string {
+  const candidates = Object.values(networkInterfaces()).flatMap((entries) => entries ?? [])
+    .filter((entry) => entry.family === "IPv4" && !entry.internal)
+    .map((entry) => entry.address)
+    .filter((address) => /^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(address));
+  return candidates[0] ?? "127.0.0.1";
 }
 
-export function createMainWindow(preloadPath: string): BrowserWindow {
-  const window = new BrowserWindow({
-    title: "httpSMS Desktop — Unofficial desktop client",
-    width: 1_320,
-    height: 840,
-    minWidth: 1_040,
-    minHeight: 680,
-    backgroundColor: "#f4f6f3",
-    show: false,
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-      spellcheck: false,
-    },
-  });
+async function openDashboard(): Promise<void> {
+  if (server) await shell.openExternal(server.dashboardUrl);
+}
 
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("https://")) void shell.openExternal(url);
-    return { action: "deny" };
-  });
-  window.webContents.on("will-navigate", (event) => event.preventDefault());
-  window.webContents.on("will-attach-webview", (event) => event.preventDefault());
-  window.once("ready-to-show", () => window.show());
-  return window;
+function rebuildTrayMenu(): void {
+  if (!tray || !controller || !server) return;
+  const launchAtLogin = app.getLoginItemSettings().openAtLogin;
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: "Open Nabda Controller", click: () => void openDashboard() },
+    { label: `Phone gateway: ${controller.liveEnabled ? "enabled" : "locked"}`, enabled: false },
+    { label: `Android URL: ${server.lanUrl}`, enabled: false },
+    { type: "separator" },
+    {
+      label: "Start with Windows",
+      type: "checkbox",
+      checked: launchAtLogin,
+      click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked, args: ["--background"] }),
+    },
+    {
+      label: "Lock carrier sending",
+      enabled: controller.liveEnabled,
+      click: () => { controller?.setLiveEnabled(false); rebuildTrayMenu(); },
+    },
+    { type: "separator" },
+    { label: "Quit Nabda", click: () => { quitting = true; app.quit(); } },
+  ]));
 }
 
 async function bootstrap(): Promise<void> {
-  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
-  session.defaultSession.setPermissionCheckHandler(() => false);
+  app.setAppUserModelId("com.nabda.controller");
+  database = new DesktopDatabase(join(app.getPath("userData"), "nabda-controller.sqlite3"));
+  controller = new LocalController(database);
+  server = await startControllerServer({ controller, lanAddress: privateIpv4(), port: 3210 });
 
-  // Core owns SQLite, queue and providers. This import is deliberately the
-  // single integration seam between Electron and desktop/core.
-  const core = (await import("./integration.js")) as unknown as {
-    createDesktopServices?: (input: {
-      userDataPath: string;
-      readProviderSecret: () => Promise<string | undefined>;
-    }) => Promise<DesktopServices> | DesktopServices;
-  };
-  if (!core.createDesktopServices) throw new Error("Desktop core adapter is not configured.");
-  const secretVault = new SecretVault(app.getPath("userData"), safeStorage);
-  const services = await core.createDesktopServices({
-    userDataPath: app.getPath("userData"),
-    readProviderSecret: () => secretVault.read(),
-  });
-  await runDesktopApp(services, secretVault);
+  const icon = nativeImage.createFromPath(join(app.getAppPath(), "build", "icon.png")).resize({ width: 20, height: 20 });
+  tray = new Tray(icon);
+  tray.setToolTip("Nabda Controller — running in the background");
+  tray.on("click", () => void openDashboard());
+  rebuildTrayMenu();
+  if (!process.argv.includes("--background")) await openDashboard();
 }
 
-app.whenReady().then(bootstrap).catch(() => app.quit());
-app.on("window-all-closed", () => app.quit());
-app.on("before-quit", () => {
-  disposeIpc?.();
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => void openDashboard());
+  app.whenReady().then(bootstrap).catch((issue: unknown) => {
+    dialog.showErrorBox("Nabda Controller could not start", issue instanceof Error ? issue.message : String(issue));
+    quitting = true;
+    app.quit();
+  });
+}
+
+app.on("window-all-closed", () => { /* The tray controller intentionally stays in the background. */ });
+app.on("before-quit", (event) => {
+  if (quitting && server) {
+    event.preventDefault();
+    const active = server;
+    server = undefined;
+    void active.close().catch(() => undefined).finally(() => {
+      database?.close();
+      database = undefined;
+      app.exit(0);
+    });
+  }
 });

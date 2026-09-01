@@ -24,7 +24,7 @@ describe("desktop migration and backup", () => {
     old.prepare("INSERT INTO messages(id, phone, content, status, scheduled_at, created_at, updated_at) VALUES ('old-1', '+218910000001', 'old', 'queued', '2026-01-01', '2026-01-01', '2026-01-01')").run();
     old.close();
     const upgraded = new DesktopDatabase(path); dbs.push(upgraded);
-    expect(upgraded.db.prepare("PRAGMA user_version").get()).toEqual({ user_version: 3 });
+    expect(upgraded.db.prepare("PRAGMA user_version").get()).toEqual({ user_version: 4 });
     expect(new DesktopRepository(upgraded).getMessage("old-1")?.content).toBe("old");
     expect(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE name='campaign_recipients'").get()).toBeTruthy();
     expect(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE name='pairing_sessions'").get()).toBeUndefined();

@@ -17,6 +17,30 @@ The platform is free and the local plan accepts up to **5,000 message operations
 - Queue recovery, message expiry, retention cleanup, audit logs, and signed webhooks
 - Mock and Android provider boundaries
 - English product site, Help Center, OpenAPI file, and Postman collection
+- One-click Windows background controller with a browser dashboard and local SQLite storage
+
+## Easiest option: Windows Controller
+
+For a single Windows computer and one Android phone, install **Nabda Controller**. It runs in the system tray, stores the queue in a local SQLite database, and opens its controls in Chrome, Edge, or your default browser. It does not require Docker, PostgreSQL, or Redis.
+
+1. Install `Nabda-Controller-0.1.0-Setup-x64.exe`.
+2. Open Nabda from the Start menu. The browser dashboard opens at `http://127.0.0.1:3210` through a protected tray-generated session.
+3. In **Device**, create a device token and copy the displayed LAN URL and one-time token into the Android LAN app.
+4. Type `ENABLE_LIVE_SMS` in the dashboard and approve live sending on Android.
+5. Add contacts, queue one message, or create a controlled contact campaign in the browser.
+
+Closing the browser does not stop Nabda. The controller and queue continue in the Windows background. Click the tray icon to reopen the dashboard, enable **Start with Windows** if wanted, or use **Lock carrier sending** for an immediate stop.
+
+The Windows dashboard is restricted to the same computer. Only `/health` and the authenticated `/v1/device/*` phone protocol are reachable from the private LAN. Device tokens and message leases are stored only as SHA-256 hashes.
+
+Build the unsigned internal Windows installer locally with:
+
+```bash
+npm ci
+npm run dist:win
+```
+
+The installer is written to `release/`. Windows may display an unknown-publisher warning until a code-signing certificate is configured.
 
 ## Architecture
 
@@ -49,7 +73,7 @@ The phone never downloads the whole campaign. It claims one message, asks the se
 
 At 10 messages per minute, 4,000 messages take about 6 hours 40 minutes and 5,000 take about 8 hours 20 minutes. The rate protects the phone, SIM, and queue. Change it only after confirming the permitted carrier rate.
 
-## Requirements
+## Docker/API deployment requirements
 
 - Docker Desktop with Docker Compose
 - Android 8 or newer for the phone agent
@@ -237,7 +261,7 @@ android-agent/   Native Android simulation and same-LAN variants
 tests/           API, security, queue and device protocol tests
 public/          Marketing site and Help Center
 docs/            OpenAPI, Postman and architecture decisions
-desktop/         Optional desktop client code
+desktop/         Windows tray controller, browser dashboard and SQLite store
 ```
 
 ## Responsible operation

@@ -23,11 +23,11 @@ afterEach(() => {
 });
 
 describe("local SQLite data", () => {
-  it("migrates to schema v3 and removes the retired local-pairing tables", () => {
+  it("migrates to schema v4 with the local browser-controller tables", () => {
     const { database } = core();
-    expect(database.db.prepare("PRAGMA user_version").get()).toEqual({ user_version: 3 });
+    expect(database.db.prepare("PRAGMA user_version").get()).toEqual({ user_version: 4 });
     const tables = database.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map((row) => (row as { name: string }).name);
-    expect(tables).toEqual(expect.arrayContaining(["clients", "contacts", "opt_outs", "messages", "message_events", "queue_jobs", "campaigns", "campaign_recipients"]));
+    expect(tables).toEqual(expect.arrayContaining(["clients", "contacts", "opt_outs", "messages", "message_events", "queue_jobs", "campaigns", "campaign_recipients", "controller_devices", "device_claims", "device_event_receipts"]));
     expect(tables).not.toEqual(expect.arrayContaining(["devices", "device_credentials", "pairing_sessions"]));
   });
 

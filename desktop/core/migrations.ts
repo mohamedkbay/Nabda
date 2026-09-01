@@ -4,7 +4,7 @@ export interface DesktopMigration {
   sql: string;
 }
 
-export const DESKTOP_SCHEMA_VERSION = 3;
+export const DESKTOP_SCHEMA_VERSION = 4;
 
 export const desktopMigrations: readonly DesktopMigration[] = [
   {
@@ -63,6 +63,41 @@ export const desktopMigrations: readonly DesktopMigration[] = [
       DROP TABLE device_credentials;
       ALTER TABLE messages DROP COLUMN device_id;
       DROP TABLE devices;
+    `,
+  },
+  {
+    version: 4,
+    name: "local_browser_controller",
+    sql: `
+      CREATE TABLE controller_devices (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL CHECK(status IN ('active', 'revoked')),
+        last_seen_at TEXT,
+        app_version TEXT,
+        android_version TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE device_claims (
+        message_id TEXT PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,
+        device_id TEXT NOT NULL REFERENCES controller_devices(id) ON DELETE CASCADE,
+        lease_hash TEXT NOT NULL UNIQUE,
+        lease_expires_at TEXT NOT NULL,
+        attempt_id TEXT,
+        begun_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX device_claims_expiry_idx ON device_claims(lease_expires_at);
+      CREATE TABLE device_event_receipts (
+        event_id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+        event_hash TEXT NOT NULL,
+        response_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
     `,
   },
 ];

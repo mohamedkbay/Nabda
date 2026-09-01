@@ -6,6 +6,13 @@
     "declaration": false,
     "sourceMap": true
   },
-  "include": ["desktop/**/*.ts"],
+  "include": [
+    "desktop/main.ts",
+    "desktop/controller/**/*.ts",
+    "desktop/core/database.ts",
+    "desktop/core/migrations.ts",
+    "desktop/core/repository.ts",
+    "desktop/core/types.ts"
+  ],
   "exclude": ["desktop-dist", "node_modules"]
 }

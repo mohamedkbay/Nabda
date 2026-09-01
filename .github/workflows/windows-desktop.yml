@@ -42,7 +42,7 @@ jobs:
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: httpsms-desktop-unofficial-windows-x64
+          name: nabda-controller-windows-x64
           path: release/*.exe
           if-no-files-found: error
           retention-days: 14

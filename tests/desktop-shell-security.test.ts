@@ -1,70 +1,45 @@
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SecretVault } from "../desktop/security/secret-vault.js";
 
-describe("Electron desktop security policy", () => {
-  it("ships an offline, accessible top-navigation renderer", async () => {
-    const html = await readFile(join(process.cwd(), "desktop/renderer/index.html"), "utf8");
-    const css = await readFile(join(process.cwd(), "desktop/renderer/styles.css"), "utf8");
-    const renderer = await readFile(join(process.cwd(), "desktop/renderer/app.js"), "utf8");
-    expect(html).toContain('class="app-header"');
-    expect(html).toContain('aria-label="القائمة الرئيسية"');
-    expect(html).toContain('src="./vendor/lucide.js"');
-    expect(html).toContain("connect-src 'none'");
-    expect(html).toContain("httpSMS Desktop");
-    expect(html).toContain("Unofficial desktop client");
-    for (const icon of ["house", "users-round", "contact-round", "rows-3", "messages-square", "plug", "database-backup"]) {
-      expect(html).toContain(`data-lucide="${icon}"`);
-    }
-    for (const page of ["dashboard", "customers", "contacts", "campaigns", "messages", "integration", "backup"]) {
-      expect(html).toContain(`data-page="${page}"`);
-      expect(html).toContain(`id="page-${page}"`);
-    }
+describe("Windows background controller security policy", () => {
+  it("ships an English browser dashboard for messages, contacts, campaigns, and devices", async () => {
+    const html = await readFile(join(process.cwd(), "desktop/controller/web/index.html"), "utf8");
+    const css = await readFile(join(process.cwd(), "desktop/controller/web/styles.css"), "utf8");
+    const renderer = await readFile(join(process.cwd(), "desktop/controller/web/app.js"), "utf8");
+    expect(html).toContain("Nabda Controller");
+    expect(html).toContain('lang="en"');
+    for (const page of ["overview", "messages", "contacts", "campaign", "device"]) expect(html).toContain(`id="${page}"`);
     expect(css).toContain("button:focus-visible");
-    expect(css).toContain("touch-action:manipulation");
-    expect(renderer).toContain("await api.campaigns.create");
-    expect(renderer).toContain("api.messages.refreshStatuses");
+    expect(css).toContain("@font-face");
+    expect(renderer).toContain('"x-nabda-control":"1"');
+    expect(renderer).toContain("/control-api/campaigns");
     expect(renderer).not.toContain("x-api-key");
-    expect(html).not.toContain('id="page-devices"');
-    expect(html).not.toContain("pairing_code");
+    expect(html).not.toContain("httpSMS");
   });
 
-  it("keeps the renderer isolated and denies Node integration", async () => {
+  it("uses the system browser and stays alive as a single background tray process", async () => {
     const source = await readFile(join(process.cwd(), "desktop/main.ts"), "utf8");
-    expect(source).toContain("contextIsolation: true");
-    expect(source).toContain("nodeIntegration: false");
-    expect(source).toContain("sandbox: true");
-    expect(source).toContain("webSecurity: true");
-    expect(source).toContain('return { action: "deny" }');
-    expect(source).toContain("setPermissionRequestHandler");
+    expect(source).toContain("new Tray");
+    expect(source).toContain("shell.openExternal");
+    expect(source).toContain("requestSingleInstanceLock");
+    expect(source).toContain("Start with Windows");
+    expect(source).not.toContain("BrowserWindow");
   });
 
-  it("exposes named preload methods without a generic IPC escape hatch", async () => {
-    const source = await readFile(join(process.cwd(), "desktop/preload.ts"), "utf8");
-    const packagedSource = await readFile(join(process.cwd(), "desktop/preload.cjs"), "utf8");
-    expect(source).toContain('contextBridge.exposeInMainWorld("httpSmsDesktop"');
-    expect(source).not.toContain("ipcRenderer.send");
-    expect(source).not.toContain("ipcRenderer.on");
-    expect(source).not.toContain("ipcRenderer.removeListener");
-    expect(packagedSource).toContain('contextBridge.exposeInMainWorld(');
-    expect(packagedSource).not.toContain("ipcRenderer.send");
-    expect(packagedSource).not.toContain("ipcRenderer.on");
-  });
-
-  it("uses the official provider adapter and keeps connection testing read-only", async () => {
-    const provider = await readFile(join(process.cwd(), "desktop/core/provider.ts"), "utf8");
-    const integration = await readFile(join(process.cwd(), "desktop/integration.ts"), "utf8");
-    const handlers = await readFile(join(process.cwd(), "desktop/ipc/register-handlers.ts"), "utf8");
-    expect(integration).toContain("new HttpSmsProvider");
-    expect(integration).not.toContain('fetchImplementation(`${HTTPSMS_API}');
-    expect(provider).toContain("/users/me");
-    expect(provider).toContain("/messages/send");
-    expect(provider).toContain('"x-api-key"');
-    expect(provider).toContain("Manual review");
-    expect(handlers).toContain("GET /users/me is read-only");
-    await expect(access(join(process.cwd(), "desktop/network/local-pairing-server.ts"))).rejects.toThrow();
+  it("keeps browser controls loopback-only and Android behind a hashed bearer token", async () => {
+    const server = await readFile(join(process.cwd(), "desktop/controller/server.ts"), "utf8");
+    const controller = await readFile(join(process.cwd(), "desktop/controller/controller.ts"), "utf8");
+    expect(server).toContain("local_browser_only");
+    expect(server).toContain("SameSite=Strict");
+    expect(server).toContain("x-nabda-control");
+    expect(server).toContain("frame-ancestors 'none'");
+    expect(controller).toContain('hash("device", token)');
+    expect(controller).toContain("timingSafeEqual");
+    expect(controller).toContain("MIN_DISPATCH_INTERVAL_MS = 6_000");
+    expect(controller).not.toContain("httpSMS");
   });
 
   it("cleans generated desktop output before packaging", async () => {
