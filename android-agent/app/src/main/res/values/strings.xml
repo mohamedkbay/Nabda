@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_title">Connect this phone</string>
+    <string name="server_url_label">Server URL</string>
+    <string name="server_url_hint">http://127.0.0.1:3000</string>
+    <string name="device_token_label">Device token</string>
+    <string name="device_token_hint">Paste device token</string>
+    <string name="connect_start">Connect &amp; start</string>
+    <string name="stop_agent">Stop agent</string>
+    <string name="status_title">Status</string>
+    <string name="status_stopped">Not connected</string>
+    <string name="last_activity_title">Last activity</string>
+    <string name="last_activity_empty">Nothing yet</string>
+    <string name="live_consent">I confirm recipients expect these transactional messages.</string>
+    <string name="notification_channel_name">Phone connection</string>
+    <string name="notification_title">Nabda phone agent</string>
+    <string name="notification_connecting">Connecting to Nabda…</string>
+    <string name="notification_connected">Connected and checking the queue</string>
+</resources>

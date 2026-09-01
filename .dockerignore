@@ -7,3 +7,6 @@ coverage
 .git
 *.log
 android-agent
+release
+desktop-dist
+build

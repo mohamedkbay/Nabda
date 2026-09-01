@@ -44,6 +44,32 @@ describe("httpSMS configuration boundary", () => {
   });
 });
 
+describe("Android LAN live boundary", () => {
+  const lanEnvironment = {
+    ...validEnvironment,
+    NODE_ENV: "development",
+    PROVIDER_MODE: "mock",
+    ENABLE_LIVE_SMS: "true",
+    ENABLE_ANDROID_AGENT: "true",
+    ENABLE_ANDROID_AGENT_LIVE_REPORTING: "true",
+  } satisfies NodeJS.ProcessEnv;
+
+  it("requires the exact explicit confirmation", () => {
+    expect(() => loadConfig(lanEnvironment)).toThrow(/explicit LAN confirmation/);
+  });
+
+  it("accepts the isolated provider mode with the exact confirmation", () => {
+    expect(loadConfig({
+      ...lanEnvironment,
+      CONFIRM_LAN_LIVE_SMS: "I_UNDERSTAND_LAN_LIVE_SMS",
+    })).toMatchObject({
+      PROVIDER_MODE: "mock",
+      ENABLE_ANDROID_AGENT: true,
+      ENABLE_ANDROID_AGENT_LIVE_REPORTING: true,
+    });
+  });
+});
+
 describe("message retention configuration", () => {
   it("uses conservative cleanup defaults", () => {
     expect(loadConfig(validEnvironment)).toMatchObject({

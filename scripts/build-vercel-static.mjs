@@ -47,4 +47,4 @@ await Promise.all([
   ),
 ]);
 
-console.log("Prepared the httpSMS Desktop static site for Vercel in .vercel-static/.");
+console.log("Prepared the Nabda static site for Vercel in .vercel-static/.");

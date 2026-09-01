@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "6f879f7d-74d7-4a38-9a76-319ae11cd1aa",
     "name": "Nabda API",
-    "description": "Local developer collection for the Nabda transactional messaging API. Run it only against the included localhost environment and confirm GET /health reports provider_mode=mock before creating a message. The examples use a fictional recipient and expected transaction text. Never replace the dummy phone with a real recipient during development. The permanent Free plan has a monthly allowance of 1,000 accepted operations; this collection keeps a stable idempotency key so repeating the Create message request replays the same message instead of consuming usage twice. Change idempotency_key deliberately when testing a new Mock message. Run the Opt-out request last because it blocks subsequent message creation for recipient_phone.",
+    "description": "Local developer collection for the Nabda transactional messaging API. Run it only against the included localhost environment and confirm GET /health reports provider_mode=mock before creating a message. The examples use a fictional recipient and expected transaction text. Never replace the dummy phone with a real recipient during development. The permanent Free plan has a monthly allowance of 5,000 accepted operations; this collection keeps a stable idempotency key so repeating the Create message request replays the same message instead of consuming usage twice. Change idempotency_key deliberately when testing a new Mock message. Run the Opt-out request last because it blocks subsequent message creation for recipient_phone.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {

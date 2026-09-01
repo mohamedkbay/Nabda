@@ -3,8 +3,8 @@
 
   document.documentElement.classList.add("js");
 
-  const LANGUAGE_KEY = "httpsms-desktop-language";
-  const THEME_KEY = "httpsms-desktop-docs-theme";
+  const LANGUAGE_KEY = "nabda-language";
+  const THEME_KEY = "nabda-docs-theme";
   let currentLanguage = "en";
 
   const readPreference = (key) => {
@@ -56,7 +56,7 @@
     });
 
     if (persist) savePreference(LANGUAGE_KEY, currentLanguage);
-    document.dispatchEvent(new CustomEvent("httpsms-desktop:language", { detail: { language: currentLanguage } }));
+    document.dispatchEvent(new CustomEvent("nabda:language", { detail: { language: currentLanguage } }));
   };
 
   const savedLanguage = readPreference(LANGUAGE_KEY);
@@ -129,7 +129,7 @@
       renderThemeButtons();
     });
   });
-  document.addEventListener("httpsms-desktop:language", renderThemeButtons);
+  document.addEventListener("nabda:language", renderThemeButtons);
   renderThemeButtons();
 
   document.querySelectorAll("[data-copy-target]").forEach((button) => {
@@ -201,7 +201,7 @@
     document.addEventListener("click", (event) => {
       if (!searchResults.contains(event.target) && event.target !== searchInput) closeResults();
     });
-    document.addEventListener("httpsms-desktop:language", renderResults);
+    document.addEventListener("nabda:language", renderResults);
 
     document.addEventListener("keydown", (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {

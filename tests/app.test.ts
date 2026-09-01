@@ -70,7 +70,7 @@ describe("health and API-key authentication", () => {
   it("exposes liveness and readiness without authentication", async () => {
     const health = await context.app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);
-    expect(health.json()).toEqual({ status: "ok", provider_mode: "mock" });
+    expect(health.json()).toEqual({ status: "ok", provider_mode: "mock", delivery_mode: "mock" });
     await expect(context.app.inject({ method: "GET", url: "/health/live" })).resolves.toMatchObject({ statusCode: 200 });
 
     const ready = await context.app.inject({ method: "GET", url: "/health/ready" });
@@ -140,8 +140,9 @@ describe("health and API-key authentication", () => {
     expect(homepage.headers["content-type"]).toContain("text/html");
     expect(homepage.headers["content-security-policy"]).toContain("default-src 'self'");
     expect(homepage.body).toContain('<html lang="en" dir="ltr">');
-    expect(homepage.body).toContain("httpSMS Desktop");
-    expect(homepage.body).toContain("Unofficial");
+    expect(homepage.body).toContain("Nabda");
+    expect(homepage.body).toContain("Android LAN gateway");
+    expect(homepage.body).not.toContain("httpSMS Desktop");
 
     const stylesheet = await context.app.inject({ method: "GET", url: "/styles.css" });
     expect(stylesheet.statusCode).toBe(200);
@@ -173,7 +174,7 @@ describe("health and API-key authentication", () => {
       expect(response.statusCode, route).toBe(200);
       expect(response.headers["content-type"], route).toContain("text/html");
       expect(response.headers["cache-control"], route).toBe("no-cache");
-      expect(response.body, route).toMatch(/<title>[^<]*httpSMS Desktop[^<]*<\/title>/i);
+      expect(response.body, route).toMatch(/<title>[^<]*Nabda[^<]*<\/title>/i);
       expect(response.body, route).toMatch(/<h1(?:\s[^>]*)?>/i);
     }
 
@@ -183,25 +184,25 @@ describe("health and API-key authentication", () => {
     }
   });
 
-  it("presents the local Desktop client and separates provider costs", async () => {
+  it("presents Nabda, the free-plan limits, and the Android LAN flow", async () => {
     const homepage = await context.app.inject({ method: "GET", url: "/" });
     const pricing = await context.app.inject({ method: "GET", url: "/pricing" });
     const gettingStarted = await context.app.inject({ method: "GET", url: "/get-started" });
     const help = await context.app.inject({ method: "GET", url: "/help" });
 
-    expect(homepage.body).toContain("httpSMS Desktop");
-    expect(homepage.body).toContain("official httpSMS service and Android app");
-    expect(pricing.body).toContain("No trial timer and no Desktop subscription");
-    expect(pricing.body).toContain("Controlled elsewhere");
-    expect(gettingStarted.body).toContain("Account API Key");
-    expect(gettingStarted.body).toContain("without local pairing");
-    expect(help.body).toContain("No custom phone software");
-    expect(help.body).toContain("GET /v1/users/me");
+    expect(homepage.body).toContain("Android LAN gateway");
+    expect(homepage.body).toContain("5K");
+    expect(pricing.body).toContain("5,000 accepted message operations per month");
+    expect(pricing.body).toContain("It does not include SIM credit, carrier charges");
+    expect(gettingStarted.body).toContain("Connect a company phone on the same Wi-Fi");
+    expect(gettingStarted.body).toContain("claims only one message");
+    expect(help.body).toContain("Connect the phone on the same Wi-Fi");
+    expect(help.body).toContain("It never downloads the entire campaign");
 
     for (const body of [homepage.body, pricing.body, gettingStarted.body, help.body]) {
       expect(body).not.toContain("db:trial");
-      expect(body).not.toContain("Nabda");
-      expect(body).not.toContain("نبضة");
+      expect(body).not.toContain("httpSMS Desktop");
+      expect(body).not.toContain("Unofficial desktop client");
     }
   });
 

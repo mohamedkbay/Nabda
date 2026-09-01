@@ -1,123 +1,247 @@
-# httpSMS Desktop
+# Nabda API
 
-An **unofficial desktop client** for the third-party [httpSMS](https://httpsms.com/) service. It provides a local Windows workspace for customers, contacts, opt-outs, campaigns, queued messages, status history, settings, and backups.
+Nabda is a self-hosted, multi-tenant messaging API. A company connects its own Android phone and SIM, queues expected service messages through an API, and lets the phone send them while it is connected to the same trusted Wi-Fi network.
 
-This project is independent. It is not the official httpSMS Android application, is not affiliated with or endorsed by its publisher, and does not claim ownership of the httpSMS name or brand.
+The platform is free and the local plan accepts up to **5,000 message operations per month**. SIM credit, carrier fees, phones, and infrastructure remain the operator's responsibility.
 
-## How it works
+## What is included
+
+- TypeScript and Fastify API
+- PostgreSQL as the durable source of truth
+- Redis and BullMQ for background jobs and rate limits
+- Native lightweight Android agent written in Java
+- API keys and device tokens stored as keyed hashes
+- Organization-level tenant isolation
+- Idempotent message creation
+- Contacts, consent references, opt-outs, and duplicate protection
+- Queue recovery, message expiry, retention cleanup, audit logs, and signed webhooks
+- Mock and Android provider boundaries
+- English product site, Help Center, OpenAPI file, and Postman collection
+
+## Architecture
 
 ```text
-httpSMS Desktop
-├── Electron renderer (isolated, no Node.js)
-├── Electron main process
-│   ├── SQLite database in the OS user-data directory
-│   ├── OS-encrypted Account API Key via safeStorage
-│   └── local queue and bounded status polling
-└── HTTPS → official httpSMS API → official Android app → user's SIM
+Your application
+      │  API on the trusted LAN
+      ▼
+Nabda API ───── PostgreSQL
+      │              │
+      └── Redis ─────┴── queue, limits, events and audit
+
+Android phone on the same Wi-Fi
+      │ heartbeat → claim one → begin → report result
+      └───────────────────────────────────────────────┘
 ```
 
-The installed application does not require Docker, PostgreSQL, Redis, Java, an Android SDK, a LAN listener, QR pairing, or a custom phone backend. The legacy server code under `src/` is not included in the Electron package.
+The phone never downloads the whole campaign. It claims one message, asks the server for final send authorization, sends it through Android, reports the result, and immediately requests the next item. If Wi-Fi disappears, the phone waits and resumes automatically.
 
-## Phone and provider setup
+## Current local limits
 
-1. Create or sign in to your httpSMS account.
-2. Install the official Android application by following the [httpSMS getting-started guide](https://docs.httpsms.com/).
-3. Sign in to the official application and keep the phone online with the permissions documented by the provider.
-4. In httpSMS Desktop, open **Integration**.
-5. Enter the full **Account API Key** from provider settings. Do not use a phone-only API key here.
-6. Enter **From** as the registered phone number in E.164 format, for example `+2189XXXXXXXX`.
-7. Save, then choose **Test Connection**.
+| Limit | Value |
+| --- | ---: |
+| Monthly accepted messages | 5,000 |
+| Dispatch rate | 10 messages/minute |
+| Active contacts | 10,000 |
+| Android devices | 1 per organization |
+| API keys | 3 per organization |
+| Webhooks | 2 per organization |
+| Sensitive-data retention | 30 days |
 
-Test Connection reads provider account metadata only. It does not call the message-send endpoint and does not send an SMS.
+At 10 messages per minute, 4,000 messages take about 6 hours 40 minutes and 5,000 take about 8 hours 20 minutes. The rate protects the phone, SIM, and queue. Change it only after confirming the permitted carrier rate.
 
-The Account API Key is encrypted by Electron `safeStorage` in the main process. It is never written to SQLite, renderer storage, backups, logs, or QR codes. The non-secret `From` value and polling interval are stored in SQLite.
+## Requirements
 
-## Local data
+- Docker Desktop with Docker Compose
+- Android 8 or newer for the phone agent
+- Node.js 22+ only when developing outside Docker
+- Java 17 and Android SDK only when rebuilding the APK
 
-The application stores its database under Electron's `app.getPath("userData")` directory:
+## 1. Configure the local server
 
-- Windows: normally `%APPDATA%\httpSMS Desktop (Unofficial)\httpsms-desktop.sqlite3`
-- macOS development builds: normally `~/Library/Application Support/httpSMS Desktop (Unofficial)/httpsms-desktop.sqlite3`
-
-SQLite uses foreign keys, WAL mode, and ordered migrations. Uninstalling the program does not delete user data automatically.
-
-Backups contain the validated SQLite data and intentionally exclude the provider API key. Import validates the backup before replacing the active database and preserves the existing database if validation fails.
-
-## Message safety
-
-- Only expected messages to recipients who agreed to receive them are permitted.
-- Opt-outs are checked when a message enters the queue and again immediately before provider submission.
-- A deliberately queued message can result in a real carrier SMS and may consume provider allowance or SIM credit.
-- Ambiguous provider outcomes are not retried automatically; they require manual review.
-- Desktop polls the provider for later delivery status at the configured interval.
-- Unit tests use mocked network boundaries and do not send SMS.
-
-## Developer quick start
-
-Requirements: Node.js 24 LTS and npm.
+Copy the example file and add three unique local secrets:
 
 ```bash
-npm ci
-npm run test:desktop
-npm run dev:desktop
+cp .env.example .env
+chmod 600 .env
+openssl rand -hex 24
+openssl rand -base64 48
+openssl rand -base64 32
 ```
 
-Useful commands:
+Put the results in `.env` as `POSTGRES_PASSWORD`, `API_KEY_HASH_SECRET`, and `APP_ENCRYPTION_KEY`. The encryption key must decode to exactly 32 bytes. Never commit `.env`.
 
-| Command | Purpose |
-| --- | --- |
-| `npm run check` | Type-check all TypeScript without emitting files |
-| `npm run test:desktop` | Run the explicit Desktop test set |
-| `npm run build:desktop` | Compile Electron main/preload code and copy renderer assets |
-| `npm run dev:desktop` | Build and open the application locally |
-| `npm run dist:dir` | Create an unpacked application for the current OS |
-| `npm run dist:win` | Test, build, and package the Windows x64 NSIS installer |
-
-## Windows installer
-
-Run on Windows 10/11 x64:
+Start the safe simulation stack:
 
 ```bash
-npm ci
-npm run dist:win
+docker compose up --build -d
 ```
 
-The installer is written to:
+Start the same-LAN live stack only when ready to connect the company phone:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.live.yml up --build -d
+```
+
+The API listens on port `3000`. PostgreSQL and Redis remain bound to the computer only.
+
+```bash
+curl http://127.0.0.1:3000/health
+curl http://127.0.0.1:3000/health/ready
+```
+
+## 2. Create the API key and phone token
+
+In simulation mode:
+
+```bash
+docker compose run --rm migrate npm run db:free
+docker compose run --rm migrate npm run db:device-agent
+```
+
+In live LAN mode:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.live.yml run --rm migrate npm run db:free
+docker compose -f docker-compose.yml -f docker-compose.live.yml run --rm migrate npm run db:device-agent
+```
+
+Each command prints its raw credential once. Copy it immediately:
+
+- Put the `nbda_live_...` API key only in the application that calls Nabda.
+- Put the `nbda_device_...` token only in the Android agent.
+- Never place either credential in source code, URLs, screenshots, or logs.
+
+Running either command again rotates the matching local credential.
+
+## 3. Install and connect the phone
+
+The verified same-LAN debug APK is:
 
 ```text
-release/httpSMS-Desktop-Unofficial-<version>-Setup-x64.exe
+android-agent/artifacts/Nabda-Agent-LAN-0.1.0-debug.apk
 ```
 
-The workflow `.github/workflows/windows-desktop.yml` performs a locked install, runs the Desktop tests, and uploads the EXE as a private build artifact. It does not deploy or publish the application.
+Install it over USB:
 
-The NSIS installer creates Start Menu and desktop shortcuts, supports choosing the installation directory, and leaves local user data in place during uninstall to reduce accidental data loss.
+```bash
+export ANDROID_SDK_ROOT=/Users/mohamedbay/.android-sdk
+npm run android:install:lan
+```
 
-## Security boundary
-
-- `contextIsolation: true`
-- `nodeIntegration: false`
-- renderer sandbox enabled
-- named and validated IPC only; no generic IPC escape hatch
-- navigation and untrusted window creation denied
-- provider key owned by the main process and protected with OS encryption
-- no credential in logs, SQLite, backups, command-line arguments, or renderer responses
-- official provider HTTPS endpoint only
-- no local HTTP phone server or public inbound port
-
-## Project structure
+Keep the phone and computer on the same trusted private Wi-Fi. In the app enter:
 
 ```text
-desktop/             Electron main, preload, renderer, SQLite, queue, provider adapter
-tests/               Desktop core, backup/migration, and shell-security tests
-scripts/             Desktop asset and website build helpers
-build/               Local installer icon
-docs/                Architecture and migration notes
-src/ migrations/     Legacy server package, excluded from the Desktop installer
-public/               Separate informational website
+Server URL: http://<computer-private-ip>:3000
+Device token: <nbda_device_... token>
 ```
 
-## Provider and legal responsibility
+For example, a private address may look like `http://192.168.1.20:3000` or `http://10.0.0.20:3000`.
 
-httpSMS is a third-party service and trademark of its respective owner. Its application, API availability, account limits, pricing, permissions, and terms are controlled by the provider and may change independently of this project.
+Then:
 
-The operator is responsible for account security, the phone and SIM, provider and carrier charges, recipient expectations, consent evidence, opt-out handling, message content, staff access, and applicable law. This educational project is not a telecommunications service or legal advice.
+1. Check the expected-message confirmation.
+2. Tap **Connect & start**.
+3. Approve the Android SMS permission.
+4. Allow background activity/battery exemption if the phone vendor pauses foreground services.
+
+The LAN debug build accepts cleartext HTTP only for loopback and RFC1918 private addresses. Use a trusted WPA2/WPA3 network. A public deployment must use HTTPS.
+
+## 4. Send through the API
+
+```bash
+curl --request POST http://127.0.0.1:3000/v1/messages \
+  --header 'Authorization: Bearer <NBDA_API_KEY>' \
+  --header 'Idempotency-Key: <unique-16-to-128-character-value>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "to": "+2189XXXXXXXX",
+    "content": "Your order is ready.",
+    "purpose": "service",
+    "consent_confirmed": true,
+    "consent_reference": "order-123-notification",
+    "metadata": {"order_id": "123"}
+  }'
+```
+
+The server chooses the active Android device automatically. `device_id` is optional for a one-phone organization.
+
+```bash
+curl http://127.0.0.1:3000/v1/messages/<MESSAGE_ID> \
+  --header 'Authorization: Bearer <NBDA_API_KEY>'
+
+curl http://127.0.0.1:3000/v1/usage \
+  --header 'Authorization: Bearer <NBDA_API_KEY>'
+```
+
+Message states are `queued`, `sent`, `delivered`, `failed`, `expired`, and `cancelled`.
+
+## API rules
+
+- `Idempotency-Key` is mandatory for every create request.
+- Numbers use E.164 format.
+- `purpose` is `transactional`, `authentication`, or `service`.
+- Every request stores a traceable `consent_reference`.
+- The MVP accepts one SMS segment: 160 GSM-7 units or 70 UTF-16 units.
+- An active opt-out is checked when the request enters the queue and immediately before phone authorization.
+- The system never retries an uncertain carrier operation after an app/process restart.
+
+Core routes:
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/health/ready` | PostgreSQL and Redis readiness |
+| `POST` | `/v1/messages` | Queue an idempotent message |
+| `GET` | `/v1/messages/:id` | Read a tenant-scoped message |
+| `GET` | `/v1/usage` | Read current limits and usage |
+| `GET` | `/v1/queue` | Read queue state |
+| `POST` | `/v1/contacts` | Create or update a contact |
+| `GET` | `/v1/contacts` | List contacts |
+| `DELETE` | `/v1/contacts/:id` | Delete a contact |
+| `POST` | `/v1/opt-outs` | Block a number and cancel queued messages |
+
+Documentation is available at `/help`, `/openapi.yaml`, and `/downloads/nabda-api.postman_collection.json`.
+
+## Testing
+
+The normal checks do not send SMS:
+
+```bash
+npm run check
+npm test
+npm run build
+npm run android:build:simulation
+npm run android:build:lan
+docker compose config --quiet
+```
+
+`android:smoke:simulation` exercises the full lease protocol in simulation. `android:smoke:lan-live` verifies live credentials, heartbeat, queue, and claim, then cancels the message before `/begin`; it never authorizes an SMS.
+
+## Security notes
+
+- API keys and device tokens are stored as keyed HMAC digests.
+- The Android token and pending attempt state are encrypted with Android Keystore.
+- Tenant identity always comes from the authenticated credential.
+- Phone claims are limited to one message and use short, hashed leases.
+- Opt-out and dispatch share database locks to close race conditions.
+- Worker and Android dispatch paths are separated so a worker cannot steal a phone message.
+- Authorization headers, message content, and credentials are redacted from logs.
+- Webhooks use HMAC signatures and bounded retries.
+- PostgreSQL and Redis are not exposed to the Wi-Fi network.
+
+## Project layout
+
+```text
+src/             API, domain services, repositories, queue and workers
+migrations/      Ordered PostgreSQL migrations
+android-agent/   Native Android simulation and same-LAN variants
+tests/           API, security, queue and device protocol tests
+public/          Marketing site and Help Center
+docs/            OpenAPI, Postman and architecture decisions
+desktop/         Optional desktop client code
+```
+
+## Responsible operation
+
+Use Nabda only for expected service, authentication, and transaction messages. The operator is responsible for the SIM, carrier agreement, recipient records, message content, opt-outs, staff access, and applicable law. Unsolicited advertising, impersonation, fraud, unauthorized interception, and bypassing the safety controls are prohibited.
+
+See `/legal` for the project notice. This repository is not legal advice.

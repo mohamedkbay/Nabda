@@ -1040,7 +1040,18 @@ export class PostgresRepository implements Repository {
         FROM devices
         WHERE organization_id = $1 AND status = 'active'
           AND (
-            ($2::uuid IS NULL AND provider = $3 AND $5::boolean)
+            ($2::uuid IS NULL AND (
+              (provider = $3 AND $5::boolean)
+              OR (
+                $4::boolean AND provider = 'android_agent'
+                AND EXISTS (
+                  SELECT 1 FROM device_agent_credentials c
+                  WHERE c.organization_id = devices.organization_id
+                    AND c.device_id = devices.id AND c.revoked_at IS NULL
+                    AND c.mode = $6
+                )
+              )
+            ))
             OR (
               $2::uuid IS NOT NULL AND id = $2
               AND (
@@ -1655,6 +1666,12 @@ export class PostgresRepository implements Repository {
       `, [input.messageId, input.at]);
       const row = result.rows[0];
       if (!row) {
+        await client.query("ROLLBACK");
+        return { kind: "terminal" };
+      }
+      // Android devices pull directly from PostgreSQL through the authenticated
+      // lease protocol. The BullMQ notification must not claim or cancel them.
+      if (row.device_provider === "android_agent" && this.androidAgentEnabled) {
         await client.query("ROLLBACK");
         return { kind: "terminal" };
       }

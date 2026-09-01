@@ -30,7 +30,7 @@ export async function provisionDevelopmentFreePlan(): Promise<void> {
       FOR SHARE
     `);
     const plan = planResult.rows[0];
-    if (!plan || Number(plan.monthly_message_limit) !== 1000) {
+    if (!plan || Number(plan.monthly_message_limit) !== 5000) {
       throw new Error("The Free plan is unavailable. Run the database migrations first.");
     }
 
@@ -90,7 +90,10 @@ export async function provisionDevelopmentFreePlan(): Promise<void> {
         AND revoked_at IS NULL
     `, [organizationId]);
 
-    const generated = generateApiKey(config.API_KEY_HASH_SECRET, "test");
+    const generated = generateApiKey(
+      config.API_KEY_HASH_SECRET,
+      config.ENABLE_ANDROID_AGENT_LIVE_REPORTING ? "live" : "test",
+    );
     await client.query(`
       INSERT INTO api_keys (organization_id, name, key_prefix, key_hash, scopes)
       VALUES ($1, $2, $3, $4, ARRAY[

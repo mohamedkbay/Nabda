@@ -31,8 +31,9 @@ const schema = z.object({
   APP_ENCRYPTION_KEY: z.string().min(1),
   PROVIDER_MODE: z.enum(["mock", "httpsms"]).default("mock"),
   ENABLE_LIVE_SMS: booleanFromString.default(false),
-  ENABLE_ANDROID_AGENT: booleanFromString.default(false),
+  ENABLE_ANDROID_AGENT: booleanFromString.default(true),
   ENABLE_ANDROID_AGENT_LIVE_REPORTING: booleanFromString.default(false),
+  CONFIRM_LAN_LIVE_SMS: z.string().default(""),
   HTTPSMS_API_BASE: z.string().url().default("https://api.httpsms.com/v1"),
   PROVIDER_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(15_000),
   DISPATCH_MIN_INTERVAL_MS: z.coerce.number().int().min(1000).max(60_000).default(3_000),
@@ -79,10 +80,11 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   if (parsed.data.ENABLE_ANDROID_AGENT_LIVE_REPORTING && (
     !parsed.data.ENABLE_ANDROID_AGENT
     || !parsed.data.ENABLE_LIVE_SMS
-    || parsed.data.NODE_ENV !== "production"
+    || parsed.data.PROVIDER_MODE !== "mock"
+    || parsed.data.CONFIRM_LAN_LIVE_SMS !== "I_UNDERSTAND_LAN_LIVE_SMS"
   )) {
     throw new Error(
-      "Invalid configuration: Android agent live reporting requires production, ENABLE_ANDROID_AGENT=true, and ENABLE_LIVE_SMS=true explicitly.",
+      "Invalid configuration: Android live mode requires the Android agent, mock provider isolation, ENABLE_LIVE_SMS=true, and the explicit LAN confirmation.",
     );
   }
   return parsed.data;

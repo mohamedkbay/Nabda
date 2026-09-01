@@ -271,7 +271,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   ]);
 
   // The custom phone-agent protocol is legacy-only and is never registered by default.
-  const androidAgentEnabled = options.androidAgentEnabled ?? false;
+  const androidAgentEnabled = options.androidAgentEnabled ?? true;
   const androidAgentLiveReportingEnabled = options.androidAgentLiveReportingEnabled ?? false;
   const executionMode = options.providerMode === "httpsms" || androidAgentLiveReportingEnabled
     ? "live"
@@ -386,7 +386,11 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     }
   });
 
-  app.get("/health", async () => ({ status: "ok", provider_mode: options.providerMode }));
+  app.get("/health", async () => ({
+    status: "ok",
+    provider_mode: options.providerMode,
+    delivery_mode: androidAgentLiveReportingEnabled ? "android_lan" : options.providerMode,
+  }));
   app.get("/health/live", async () => ({ status: "ok" }));
   app.get("/health/ready", async (_request, reply) => {
     const checks = await Promise.allSettled([options.repository.health(), options.rateLimiter.health()]);
@@ -469,7 +473,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
         server_time: now().toISOString(),
         execution_mode: principal.mode,
         live_reporting_enabled: principal.mode === "live" && androidAgentLiveReportingEnabled,
-        poll_after_ms: 10_000,
+        poll_after_ms: 2_000,
       };
     });
 
@@ -484,7 +488,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       if (result.kind === "device_unavailable") {
         throw new AppError(409, "device_unavailable", "The Android device is unavailable.");
       }
-      if (result.kind === "empty") return { messages: [], poll_after_ms: 10_000 };
+      if (result.kind === "empty") return { messages: [], poll_after_ms: 2_000 };
       return {
         messages: [{
           id: result.claim.message.id,
@@ -494,7 +498,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
           lease_token: rawLeaseToken,
           lease_expires_at: result.claim.leaseExpiresAt.toISOString(),
         }],
-        poll_after_ms: 10_000,
+        poll_after_ms: 2_000,
       };
     });
 
