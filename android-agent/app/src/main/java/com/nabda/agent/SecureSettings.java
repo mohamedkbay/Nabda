@@ -23,6 +23,7 @@ public final class SecureSettings {
     private static final String STORE_NAME = "nabda_secure_agent";
     private static final String KEY_ALIAS = "nabda_agent_settings_v1";
     private static final String CREDENTIALS_KEY = "credentials";
+    private static final String SELECTED_SUBSCRIPTION_KEY = "selected_subscription";
     private static final String PENDING_DISPATCH_KEY = "pending_dispatch";
     private static final String PENDING_EVENT_KEY = "pending_event";
 
@@ -50,6 +51,17 @@ public final class SecureSettings {
         } catch (Exception ignored) {
             return Credentials.empty();
         }
+    }
+
+    public synchronized void saveSelectedSubscriptionId(int subscriptionId) throws Exception {
+        JSONObject value = new JSONObject();
+        value.put("subscription_id", subscriptionId);
+        preferences.edit().putString(SELECTED_SUBSCRIPTION_KEY, encrypt(value.toString())).apply();
+    }
+
+    public synchronized int loadSelectedSubscriptionId() {
+        JSONObject value = loadEncryptedObject(SELECTED_SUBSCRIPTION_KEY);
+        return value == null ? -1 : value.optInt("subscription_id", -1);
     }
 
     @SuppressLint("ApplySharedPref") // Ordering is safety-critical: persist before clearing dispatch state.

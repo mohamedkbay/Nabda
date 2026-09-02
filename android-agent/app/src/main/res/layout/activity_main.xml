@@ -194,6 +194,38 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/simCardSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sim_card_title"
+                android:textColor="@color/muted"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/simSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/sim_card_help"
+                android:textColor="@color/muted"
+                android:textSize="11sp" />
+        </LinearLayout>
+
         <CheckBox
             android:id="@+id/liveConsent"
             android:layout_width="match_parent"

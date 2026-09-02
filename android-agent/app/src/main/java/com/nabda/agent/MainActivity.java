@@ -8,6 +8,7 @@ import android.os.Looper;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.TextView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.google.mlkit.vision.barcode.common.Barcode;
@@ -30,6 +31,7 @@ public final class MainActivity extends Activity {
     private SecureSettings secureSettings;
     private AgentStateStore stateStore;
     private TransportGate transportGate;
+    private SimSelectionController simSelection;
     private final ExecutorService pairingExecutor = Executors.newSingleThreadExecutor();
     private boolean pairing;
     private final Handler refreshHandler = new Handler(Looper.getMainLooper());
@@ -54,8 +56,14 @@ public final class MainActivity extends Activity {
         controllerText = findViewById(R.id.controllerText);
         statusText = findViewById(R.id.statusText);
         lastActivityText = findViewById(R.id.lastActivityText);
+        simSelection = new SimSelectionController(
+                this,
+                findViewById(R.id.simCardSection),
+                (Spinner) findViewById(R.id.simSpinner),
+                secureSettings);
         transportGate = new TransportGate(this, liveConsent, stateStore);
         transportGate.initialize();
+        simSelection.initialize();
 
         scanButton.setOnClickListener(view -> scanControllerCode());
         connectButton.setOnClickListener(view -> {
@@ -155,13 +163,15 @@ public final class MainActivity extends Activity {
             Toast.makeText(this, "The saved controller address is no longer valid. Scan a new QR code.", Toast.LENGTH_LONG).show();
             return;
         }
-        transportGate.confirmThenRun(() -> startAgent(serverUrl, credentials.deviceToken));
+        transportGate.confirmThenRun(() -> simSelection.confirmSelectionThenRun(
+                () -> startAgent(serverUrl, credentials.deviceToken)));
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         transportGate.onRequestPermissionsResult(requestCode, grantResults);
+        simSelection.refresh();
     }
 
     private void startAgent(String serverUrl, String token) {
@@ -193,5 +203,6 @@ public final class MainActivity extends Activity {
         connectButton.setEnabled(snapshot.running || (credentials.isComplete() && !pairing));
         scanButton.setEnabled(!snapshot.running && !pairing);
         liveConsent.setEnabled(!snapshot.running && !pairing);
+        simSelection.setEnabled(!snapshot.running && !pairing);
     }
 }

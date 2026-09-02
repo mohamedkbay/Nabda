@@ -35,6 +35,7 @@ describe("Windows background controller security policy", () => {
     const server = await readFile(join(process.cwd(), "desktop/controller/server.ts"), "utf8");
     const controller = await readFile(join(process.cwd(), "desktop/controller/controller.ts"), "utf8");
     expect(server).toContain("local_browser_only");
+    expect(server).toContain("trustedDashboardHost");
     expect(server).toContain("SameSite=Strict");
     expect(server).toContain("x-nabda-control");
     expect(server).toContain("frame-ancestors 'none'");

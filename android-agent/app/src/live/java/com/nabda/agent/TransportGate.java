@@ -50,7 +50,9 @@ public final class TransportGate {
         if (requestCode != REQUEST_SEND_SMS) {
             return;
         }
-        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        boolean granted = grantResults.length == 2;
+        for (int result : grantResults) granted = granted && result == PackageManager.PERMISSION_GRANTED;
+        if (granted) {
             runPendingAction();
         } else {
             pendingAction = null;
@@ -67,10 +69,13 @@ public final class TransportGate {
 
     private void continueAfterConfirmation() {
         stateStore.setLiveConfirmed(true);
-        if (activity.checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+        if (activity.checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+                && activity.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
             runPendingAction();
         } else {
-            activity.requestPermissions(new String[]{Manifest.permission.SEND_SMS}, REQUEST_SEND_SMS);
+            activity.requestPermissions(
+                    new String[]{Manifest.permission.SEND_SMS, Manifest.permission.READ_PHONE_STATE},
+                    REQUEST_SEND_SMS);
         }
     }
 

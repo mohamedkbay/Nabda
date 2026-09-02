@@ -27,8 +27,9 @@ artifacts/Nabda-Agent-LAN-0.1.0-debug.apk
 1. Start Nabda Controller on Windows and open **Device**.
 2. Click **Create pairing QR**. The code expires after two minutes and works once.
 3. On Android, tap **Scan controller QR** and scan the screen.
-4. Tap **Start connection**. The device token is returned by the one-time exchange and encrypted with Android Keystore; it is never typed or copied.
-5. For the live build, confirm expected-message use and grant the SMS permission. The Windows carrier lock must also be enabled.
+4. On a Dual-SIM phone, choose the exact sending subscription shown as **SIM 1 — carrier** or **SIM 2 — carrier**. The choice is encrypted and remains locked while the agent is running.
+5. Tap **Start connection**. The device token is returned by the one-time exchange and encrypted with Android Keystore; it is never typed or copied.
+6. For the live build, confirm expected-message use and grant the SMS and phone-state permissions. The Windows carrier lock must also be enabled.
 
 Both devices must remain on the same trusted Wi-Fi. The debug URL policy accepts HTTP only for loopback, the emulator gateway, and RFC1918 private addresses. Release builds require HTTPS.
 
@@ -60,4 +61,5 @@ It claims one item at a time. Leases and attempt IDs prevent concurrent or dupli
 - Redirects are disabled so a token cannot be forwarded to another host.
 - Responses are size-limited and network operations have timeouts.
 - Real SMS requires the live build flag, user confirmation, and runtime permission.
+- Live dispatch requires an explicit active SIM subscription and never falls back to Android's default SIM.
 - The service reconnects after Wi-Fi loss and continues without downloading the campaign in bulk.

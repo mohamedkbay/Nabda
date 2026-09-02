@@ -22,6 +22,10 @@ function privateNetwork(address: string | undefined): boolean {
     || (parts[0] === 172 && (parts[1] as number) >= 16 && (parts[1] as number) <= 31)
     || (parts[0] === 192 && parts[1] === 168);
 }
+function trustedDashboardHost(host: string | undefined, port: number): boolean {
+  const value = String(host ?? "").toLowerCase();
+  return value === `127.0.0.1:${port}` || value === `localhost:${port}` || value === `[::1]:${port}`;
+}
 function json(response: ServerResponse, status: number, value: unknown, extra: Record<string, string> = {}): void {
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
@@ -116,7 +120,14 @@ export async function startControllerServer(input: {
       if (!loopback(request.socket.remoteAddress)) throw new ControllerError(403, "local_browser_only", "The control dashboard is available only on this Windows computer.");
       const cookies = String(request.headers.cookie ?? "").split(/;\s*/);
       const authenticated = cookies.includes(cookie);
-      if (path === "/" && method === "GET" && url.searchParams.get("access") === browserSecret) {
+      if (path === "/" && method === "GET" && !authenticated) {
+        if (!trustedDashboardHost(request.headers.host, port)) {
+          throw new ControllerError(403, "invalid_dashboard_host", "Open the dashboard using 127.0.0.1 or localhost.");
+        }
+        const suppliedSecret = url.searchParams.get("access");
+        if (suppliedSecret !== null && suppliedSecret !== browserSecret) {
+          throw new ControllerError(401, "dashboard_locked", "The dashboard access link is invalid.");
+        }
         response.writeHead(302, {
           location: "/",
           "set-cookie": `${cookie}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200`,

@@ -87,25 +87,28 @@ public final class DeviceAgentService extends Service {
 
                 if (retryPendingEvent(api)) {
                     delay = 250;
-                } else if (resumePendingDispatch(api)) {
-                    delay = 250;
                 } else {
-                    JSONObject claimRequest = new JSONObject();
-                    claimRequest.put("limit", 1);
-                    claimRequest.put("simulated", BuildConfig.SIMULATION_ONLY);
-                    JSONObject response = api.post("/v1/device/messages/claim", claimRequest);
-                    delay = pollAfter(response, delay);
-                    JSONArray messages = response.optJSONArray("messages");
-                    if (messages == null) {
-                        throw new JSONException("Missing messages array");
-                    }
-                    if (messages.length() == 0) {
-                        stateStore.markConnected("Queue checked — nothing waiting");
-                    } else {
-                        ClaimedMessage message = ClaimedMessage.fromJson(messages.getJSONObject(0));
-                        persistNewDispatch(message);
-                        resumePendingDispatch(api);
+                    TransportReadiness.validate(this);
+                    if (resumePendingDispatch(api)) {
                         delay = 250;
+                    } else {
+                        JSONObject claimRequest = new JSONObject();
+                        claimRequest.put("limit", 1);
+                        claimRequest.put("simulated", BuildConfig.SIMULATION_ONLY);
+                        JSONObject response = api.post("/v1/device/messages/claim", claimRequest);
+                        delay = pollAfter(response, delay);
+                        JSONArray messages = response.optJSONArray("messages");
+                        if (messages == null) {
+                            throw new JSONException("Missing messages array");
+                        }
+                        if (messages.length() == 0) {
+                            stateStore.markConnected("Queue checked — nothing waiting");
+                        } else {
+                            ClaimedMessage message = ClaimedMessage.fromJson(messages.getJSONObject(0));
+                            persistNewDispatch(message);
+                            resumePendingDispatch(api);
+                            delay = 250;
+                        }
                     }
                 }
             } catch (ApiClient.ApiException error) {

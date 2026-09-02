@@ -24,9 +24,9 @@ The platform is free and the local plan accepts up to **5,000 message operations
 For a single Windows computer and one Android phone, install **Nabda Controller**. It runs in the system tray, stores the queue in a local SQLite database, and opens its controls in Chrome, Edge, or your default browser. It does not require Docker, PostgreSQL, or Redis.
 
 1. Install `Nabda-Controller-0.1.0-Setup-x64.exe`.
-2. Open Nabda from the Start menu. The browser dashboard opens at `http://127.0.0.1:3210` through a protected tray-generated session.
+2. Open Nabda from the Start menu. The browser dashboard opens at `http://127.0.0.1:3210`; you can also enter that address directly on the same computer.
 3. In **Device**, create a two-minute pairing QR. In Nabda Agent on Android, tap **Scan controller QR**. The code works once and never contains the permanent device key.
-4. Tap **Start connection** on Android. For live SMS, type `ENABLE_LIVE_SMS` in Windows and complete the separate Android confirmation.
+4. Tap **Start connection** on Android. On a Dual-SIM phone, choose the exact sending SIM shown as `SIM 1 — carrier` or `SIM 2 — carrier`. For live SMS, type `ENABLE_LIVE_SMS` in Windows and complete the separate Android confirmation.
 5. Add one contact or import CSV, TXT, or VCF. The importer supports `Name,Emails,PhoneNumbers` and expands semicolon-separated numbers into separate contacts.
 6. Queue one message or create a controlled contact campaign in the browser.
 
@@ -245,6 +245,7 @@ docker compose config --quiet
 
 - API keys and device tokens are stored as keyed HMAC digests.
 - The Android token and pending attempt state are encrypted with Android Keystore.
+- The selected Android subscription is encrypted too. Every live dispatch verifies that it is still active and never falls back silently to another SIM.
 - Tenant identity always comes from the authenticated credential.
 - Phone claims are limited to one message and use short, hashed leases.
 - Opt-out and dispatch share database locks to close race conditions.

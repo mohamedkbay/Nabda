@@ -1,13 +1,11 @@
 package com.nabda.agent;
 
-import android.Manifest;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.telephony.SmsManager;
 
@@ -23,17 +21,8 @@ public final class MessageDispatcherFactory {
 
     public static MessageDispatcher create() {
         return (context, message) -> {
-            AgentStateStore state = new AgentStateStore(context);
-            if (!BuildConfig.LIVE_SMS_COMPILED_IN
-                    || !state.isLiveConfirmed()
-                    || context.checkSelfPermission(Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-                throw new SecurityException("Live SMS requires build opt-in, in-app confirmation, and SEND_SMS permission.");
-            }
-
-            SmsManager manager = context.getSystemService(SmsManager.class);
-            if (manager == null) {
-                throw new IllegalStateException("No SMS service is available on this device.");
-            }
+            int subscriptionId = TransportReadiness.requireSelectedSubscriptionId(context);
+            SmsManager manager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId);
             ArrayList<String> parts = manager.divideMessage(message.body);
             if (parts.size() != 1) {
                 throw new IllegalArgumentException("Nabda live transport accepts one SMS segment only.");

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { request as httpRequest } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import { LocalController } from "../desktop/controller/controller.js";
 import { startControllerServer, type ControllerServer } from "../desktop/controller/server.js";
@@ -11,6 +12,17 @@ function setup() {
   const database = new DesktopDatabase(":memory:");
   databases.push(database);
   return { database, controller: new LocalController(database) };
+}
+
+function requestWithHost(port: number, host: string): Promise<number | undefined> {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest({ hostname: "127.0.0.1", port, path: "/", headers: { host } }, (response) => {
+      response.resume();
+      response.once("end", () => resolve(response.statusCode));
+    });
+    request.once("error", reject);
+    request.end();
+  });
 }
 
 afterEach(async () => {
@@ -101,7 +113,7 @@ describe("Windows browser controller", () => {
     expect(controller.getDashboard("http://192.168.1.20:3210").counts.queued).toBe(1);
   });
 
-  it("serves health publicly but locks the browser dashboard behind a loopback session", async () => {
+  it("serves health publicly and creates a protected session only for a loopback dashboard host", async () => {
     const { controller } = setup();
     const server = await startControllerServer({ controller, lanAddress: "192.168.1.20", port: 0 });
     servers.push(server);
@@ -109,7 +121,10 @@ describe("Windows browser controller", () => {
     const health = await fetch(`${base}/health`);
     expect(health.status).toBe(200);
     await expect(health.json()).resolves.toMatchObject({ status: "ok", delivery_mode: "android_lan" });
-    expect((await fetch(`${base}/`)).status).toBe(401);
+    const direct = await fetch(`${base}/`, { redirect: "manual" });
+    expect(direct.status).toBe(302);
+    expect(direct.headers.get("set-cookie")).toMatch(/^nbda_control=/);
+    await expect(requestWithHost(server.port, `example.test:${server.port}`)).resolves.toBe(403);
 
     const unlocked = await fetch(server.dashboardUrl, { redirect: "manual" });
     expect(unlocked.status).toBe(302);

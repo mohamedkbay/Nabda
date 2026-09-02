@@ -12,6 +12,8 @@
     <string name="status_stopped">Not connected</string>
     <string name="status_pairing">Pairing securely…</string>
     <string name="last_activity_empty">Nothing yet</string>
+    <string name="sim_card_title">SENDING SIM</string>
+    <string name="sim_card_help">Every carrier message uses this SIM. Stop the agent before changing it.</string>
     <string name="live_consent">I confirm recipients expect these transactional messages.</string>
     <string name="security_note">Pairing codes expire after two minutes and work once.</string>
     <string name="notification_channel_name">Phone connection</string>
