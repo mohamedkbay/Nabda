@@ -1,14 +1,18 @@
 package com.nabda.agent;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.ContactsContract;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.TextView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.mlkit.vision.barcode.common.Barcode;
@@ -16,24 +20,36 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class MainActivity extends Activity {
+    private static final int REQUEST_READ_CONTACTS = 4201;
+    private static final int CONTACT_SYNC_BATCH_SIZE = 250;
+    private static final int MAX_PHONE_CONTACTS = 10_000;
+
     private CheckBox liveConsent;
     private Button scanButton;
     private Button connectButton;
+    private Button syncContactsButton;
     private TextView controllerText;
     private TextView statusText;
     private TextView lastActivityText;
+    private TextView contactSyncStatus;
     private SecureSettings secureSettings;
     private AgentStateStore stateStore;
     private TransportGate transportGate;
     private SimSelectionController simSelection;
     private final ExecutorService pairingExecutor = Executors.newSingleThreadExecutor();
     private boolean pairing;
+    private boolean syncingContacts;
     private final Handler refreshHandler = new Handler(Looper.getMainLooper());
     private final Runnable refreshTask = new Runnable() {
         @Override
@@ -53,9 +69,11 @@ public final class MainActivity extends Activity {
         liveConsent = findViewById(R.id.liveConsent);
         scanButton = findViewById(R.id.scanButton);
         connectButton = findViewById(R.id.connectButton);
+        syncContactsButton = findViewById(R.id.syncContactsButton);
         controllerText = findViewById(R.id.controllerText);
         statusText = findViewById(R.id.statusText);
         lastActivityText = findViewById(R.id.lastActivityText);
+        contactSyncStatus = findViewById(R.id.contactSyncStatus);
         simSelection = new SimSelectionController(
                 this,
                 findViewById(R.id.simCardSection),
@@ -67,6 +85,7 @@ public final class MainActivity extends Activity {
         transportGate.requestPermissionsOnLaunch();
 
         scanButton.setOnClickListener(view -> scanControllerCode());
+        syncContactsButton.setOnClickListener(view -> beginContactSync());
         connectButton.setOnClickListener(view -> {
             if (stateStore.snapshot().running) stopAgent();
             else validateAndStart();
@@ -138,7 +157,8 @@ public final class MainActivity extends Activity {
                     pairing = false;
                     stateStore.markPaired();
                     refreshState();
-                    Toast.makeText(this, "Phone paired. Tap Start connection.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Phone paired. Allow contact access to copy your phone book.", Toast.LENGTH_LONG).show();
+                    beginContactSync();
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {
@@ -154,7 +174,7 @@ public final class MainActivity extends Activity {
     private void validateAndStart() {
         SecureSettings.Credentials credentials = secureSettings.loadCredentials();
         if (!credentials.isComplete()) {
-            Toast.makeText(this, "Scan the QR code shown in Nabda Controller first.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Scan the QR code shown in نبضة on Windows first.", Toast.LENGTH_LONG).show();
             return;
         }
         final String serverUrl;
@@ -171,8 +191,114 @@ public final class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_READ_CONTACTS) {
+            boolean granted = grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (granted) {
+                syncPhoneContacts();
+            } else {
+                contactSyncStatus.setText("Contact access was not allowed. Tap Sync phone contacts to try again.");
+                Toast.makeText(this, "Contact permission is needed only to copy names and numbers.", Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         transportGate.onRequestPermissionsResult(requestCode, grantResults);
         simSelection.refresh();
+    }
+
+    private void beginContactSync() {
+        SecureSettings.Credentials credentials = secureSettings.loadCredentials();
+        if (!credentials.isComplete()) {
+            Toast.makeText(this, "Pair this phone with نبضة first.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            contactSyncStatus.setText(R.string.contact_sync_permission);
+            requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, REQUEST_READ_CONTACTS);
+            return;
+        }
+        syncPhoneContacts();
+    }
+
+    private void syncPhoneContacts() {
+        if (syncingContacts) return;
+        SecureSettings.Credentials credentials = secureSettings.loadCredentials();
+        if (!credentials.isComplete()) return;
+        syncingContacts = true;
+        contactSyncStatus.setText(R.string.contact_sync_working);
+        refreshState();
+        pairingExecutor.execute(() -> {
+            try {
+                List<PhoneContact> contacts = readPhoneContacts();
+                int imported = 0;
+                int duplicates = 0;
+                int invalid = 0;
+                ApiClient apiClient = new ApiClient(credentials.serverUrl, credentials.deviceToken);
+                for (int start = 0; start < contacts.size(); start += CONTACT_SYNC_BATCH_SIZE) {
+                    int end = Math.min(start + CONTACT_SYNC_BATCH_SIZE, contacts.size());
+                    JSONArray batch = new JSONArray();
+                    for (PhoneContact contact : contacts.subList(start, end)) {
+                        JSONObject row = new JSONObject();
+                        row.put("name", contact.name);
+                        row.put("phone", contact.phone);
+                        batch.put(row);
+                    }
+                    JSONObject request = new JSONObject();
+                    request.put("contacts", batch);
+                    JSONObject response = apiClient.post("/v1/device/contacts/import", request);
+                    imported += response.optInt("imported");
+                    duplicates += response.optInt("duplicates");
+                    invalid += response.optInt("invalid");
+                }
+                int finalImported = imported;
+                int finalDuplicates = duplicates;
+                int finalInvalid = invalid;
+                runOnUiThread(() -> finishContactSync(contacts.size(), finalImported, finalDuplicates, finalInvalid));
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    syncingContacts = false;
+                    String message = error.getMessage();
+                    contactSyncStatus.setText(message == null ? "Contact sync failed. Check the local connection and try again." : message);
+                    refreshState();
+                });
+            }
+        });
+    }
+
+    private List<PhoneContact> readPhoneContacts() {
+        Map<String, PhoneContact> unique = new LinkedHashMap<>();
+        String[] projection = {
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
+                ContactsContract.CommonDataKinds.Phone.NUMBER
+        };
+        try (Cursor cursor = getContentResolver().query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                projection,
+                null,
+                null,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY + " COLLATE NOCASE ASC")) {
+            if (cursor == null) return new ArrayList<>();
+            int nameColumn = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY);
+            int phoneColumn = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+            while (cursor.moveToNext() && unique.size() < MAX_PHONE_CONTACTS) {
+                String phone = phoneColumn < 0 ? "" : cursor.getString(phoneColumn);
+                if (phone == null || phone.trim().isEmpty()) continue;
+                String name = nameColumn < 0 ? "" : cursor.getString(nameColumn);
+                if (name == null || name.trim().isEmpty()) name = phone;
+                String key = phone.replaceAll("[^0-9+]", "");
+                if (!key.isEmpty()) unique.putIfAbsent(key, new PhoneContact(name.trim(), phone.trim()));
+            }
+        }
+        return new ArrayList<>(unique.values());
+    }
+
+    private void finishContactSync(int total, int imported, int duplicates, int invalid) {
+        syncingContacts = false;
+        String result = total == 0
+                ? "No contacts were found on this phone."
+                : imported + " added · " + duplicates + " already saved · " + invalid + " skipped";
+        contactSyncStatus.setText(result);
+        Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+        refreshState();
     }
 
     private void startAgent(String serverUrl, String token) {
@@ -203,7 +329,18 @@ public final class MainActivity extends Activity {
         connectButton.setText(snapshot.running ? R.string.stop_agent : R.string.connect_start);
         connectButton.setEnabled(snapshot.running || (credentials.isComplete() && !pairing));
         scanButton.setEnabled(!snapshot.running && !pairing);
+        syncContactsButton.setEnabled(credentials.isComplete() && !pairing && !syncingContacts);
         liveConsent.setEnabled(!snapshot.running && !pairing);
         simSelection.setEnabled(!snapshot.running && !pairing);
+    }
+
+    private static final class PhoneContact {
+        final String name;
+        final String phone;
+
+        PhoneContact(String name, String phone) {
+            this.name = name;
+            this.phone = phone;
+        }
     }
 }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#f8faf9" />
   <meta name="description" content="Local Nabda message queue and Android phone controller." />
-  <title>Nabda Controller</title>
+  <title>نبضة</title>
   <link rel="stylesheet" href="/styles.css?v=2" />
   <script src="/vendor/lucide.js" defer></script>
   <script src="/vendor/qrcode.js" defer></script>
@@ -13,9 +13,9 @@
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="#" data-view-target="dashboard" aria-label="Nabda Controller home">
+    <a class="brand" href="#" data-view-target="dashboard" aria-label="نبضة home">
       <img class="brand-mark" src="/nabda-mark.svg?v=2" alt="" />
-      <span><strong>Nabda</strong><small>LOCAL CONTROLLER</small></span>
+      <span><strong>نبضة</strong><small>LOCAL CONTROLLER</small></span>
     </a>
     <nav aria-label="Main navigation">
       <button class="nav-item active" data-view="dashboard"><i data-lucide="house"></i><span>Overview</span></button>
@@ -157,6 +157,13 @@
     <section class="view" id="view-contacts">
       <div class="management-grid contacts-layout">
         <div class="side-stack">
+          <article class="card panel-card phone-sync-card">
+            <div class="card-heading"><div><p class="section-kicker">RECOMMENDED</p><h2>Sync from your phone</h2></div><i data-lucide="smartphone"></i></div>
+            <p class="supporting-copy"><span>Open نبضة on the paired Android phone and tap</span> <b>Sync phone contacts</b>. <span>Android asks once for contact access, then names and numbers appear here automatically.</span></p>
+            <div class="phone-sync-steps"><span>1</span><small>Pair the phone</small><span>2</span><small>Allow contacts</small><span>3</span><small>Tap sync</small></div>
+            <p class="contact-safety-note">Contacts stay on this computer. Existing numbers are skipped, and importing a phone book does not mark anyone as campaign-approved.</p>
+          </article>
+
           <article class="card panel-card">
             <div class="card-heading"><div><p class="section-kicker">ONE PERSON</p><h2>Add contact</h2></div><i data-lucide="user-round-plus"></i></div>
             <form id="contact-form" class="stack-form">
@@ -184,7 +191,7 @@
           <div class="card-heading"><div><p class="section-kicker">SAVED LOCALLY</p><h2>All contacts</h2></div><span class="count-pill" id="contacts-list-count">0</span></div>
           <label class="search-box"><i data-lucide="search"></i><input id="contact-search" placeholder="Search by name or number" /></label>
           <div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Consent reference</th><th>State</th><th></th></tr></thead><tbody id="contacts-table"></tbody></table></div>
-          <div id="contacts-empty" class="empty-state"><i data-lucide="users-round"></i><strong>No contacts saved</strong><span>Add one or import your reference CSV file.</span></div>
+          <div id="contacts-empty" class="empty-state"><i data-lucide="users-round"></i><strong>No contacts saved</strong><span>Sync from the paired phone, add one, or import a file.</span></div>
         </article>
       </div>
     </section>
@@ -193,12 +200,12 @@
       <div class="device-layout">
         <article class="card pairing-card">
           <div class="card-heading"><div><p class="section-kicker">ONE-TIME PAIRING</p><h2>Connect your Android phone</h2></div><span class="connection-chip" id="pairing-state">Ready</span></div>
-          <p class="supporting-copy">Keep Windows and Android on the same trusted Wi-Fi. Create a code, open Nabda Agent, and tap <b>Scan controller QR</b>.</p>
+          <p class="supporting-copy">Keep Windows and Android on the same trusted Wi-Fi. Create a code, open نبضة on Android, and tap <b>Scan controller QR</b>.</p>
           <label>Phone name<input id="device-name" value="Company Android" maxlength="100" /></label>
           <button id="create-pairing" class="primary-action" type="button"><i data-lucide="qr-code"></i> Create pairing QR</button>
           <div class="qr-panel hidden" id="pairing-panel">
             <div class="qr-frame"><img id="pairing-qr" alt="One-time Nabda phone pairing QR code" /></div>
-            <div><strong>Scan this with Nabda Agent</strong><p id="pairing-expiry">Expires in 2:00</p><small>The QR works once. It does not contain the permanent device key.</small></div>
+            <div><strong>Scan this with نبضة</strong><p id="pairing-expiry">Expires in 2:00</p><small>The QR works once. It does not contain the permanent device key.</small></div>
           </div>
         </article>
 

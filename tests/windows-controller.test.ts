@@ -64,6 +64,25 @@ describe("Windows browser controller", () => {
     expect(controller.getDashboard("http://192.168.1.20:3210").counts.contacts).toBe(2);
   });
 
+  it("syncs authenticated phone contacts without treating the phone book as campaign consent", () => {
+    const { controller } = setup();
+    const provisioned = controller.provisionDevice("Contact phone");
+    const principal = controller.authenticateDevice(provisioned.token);
+    const result = controller.syncDeviceContacts(principal, {
+      contacts: [
+        { name: "Mohamed", phone: "091 801 9090" },
+        { name: "Mohamed duplicate", phone: "+218918019090" },
+        { name: "Bad", phone: "123" },
+      ],
+    });
+    expect(result).toEqual({ imported: 1, duplicates: 1, invalid: 1, total: 3 });
+    expect(controller.repository.listContacts()[0]).toMatchObject({
+      name: "Mohamed",
+      phone: "+218918019090",
+      consentReference: null,
+    });
+  });
+
   it("saves local-format contacts without forcing consent and can save a direct-send number", () => {
     const { controller } = setup();
     const contact = controller.createContact({ name: "Local contact", phone: "091 234 5678" });
@@ -171,7 +190,7 @@ describe("Windows browser controller", () => {
     expect(cookie).toMatch(/^nbda_control=/);
     const page = await fetch(`${base}/`, { headers: { cookie: cookie as string } });
     expect(page.status).toBe(200);
-    expect(await page.text()).toContain("Nabda Controller");
+    expect(await page.text()).toContain("نبضة");
     const brand = await fetch(`${base}/nabda-mark.svg`, { headers: { cookie: cookie as string } });
     expect(brand.status).toBe(200);
     expect(brand.headers.get("content-type")).toContain("image/svg+xml");
@@ -197,6 +216,22 @@ describe("Windows browser controller", () => {
       body: JSON.stringify({ pairing_token: pairingUri.searchParams.get("token") }),
     });
     expect(paired.status).toBe(201);
-    await expect(paired.json()).resolves.toMatchObject({ device_name: "QR phone" });
+    const pairedDevice = await paired.json() as { device_name: string; device_token: string };
+    expect(pairedDevice).toMatchObject({ device_name: "QR phone" });
+
+    const synced = await fetch(`${base}/v1/device/contacts/import`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${pairedDevice.device_token}`, "content-type": "application/json" },
+      body: JSON.stringify({ contacts: [{ name: "From Android", phone: "092 345 6789" }] }),
+    });
+    expect(synced.status).toBe(201);
+    await expect(synced.json()).resolves.toEqual({ imported: 1, duplicates: 0, invalid: 0, total: 1 });
+
+    const rejectedSync = await fetch(`${base}/v1/device/contacts/import`, {
+      method: "POST",
+      headers: { authorization: "Bearer invalid", "content-type": "application/json" },
+      body: JSON.stringify({ contacts: [{ name: "Blocked", phone: "0910000000" }] }),
+    });
+    expect(rejectedSync.status).toBe(401);
   });
 });

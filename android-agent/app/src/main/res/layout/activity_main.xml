@@ -35,7 +35,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Nabda"
+                    android:text="نبضة"
                     android:textColor="@color/ink"
                     android:textSize="17sp"
                     android:textStyle="bold" />
@@ -188,6 +188,53 @@
                 android:text="@string/last_activity_empty"
                 android:textColor="@color/muted"
                 android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/contact_sync_title"
+                android:textColor="@color/muted"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingExtra="2dp"
+                android:text="@string/contact_sync_help"
+                android:textColor="@color/ink"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/syncContactsButton"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/button_secondary_background"
+                android:text="@string/contact_sync_button"
+                android:textAllCaps="false"
+                android:textColor="@color/ink"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/contactSyncStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:text="@string/contact_sync_ready"
+                android:textColor="@color/muted"
+                android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout

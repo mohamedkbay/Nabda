@@ -1,10 +1,10 @@
-# Nabda Controller for Windows
+# نبضة for Windows
 
 Status: phase-one local controller
 
 ## Product decision
 
-Nabda Controller is a background Windows application. Electron supplies packaging, the tray icon, single-instance behavior, Start-with-Windows support, and safe opening in the system browser. It does not create an Electron browser window.
+نبضة is a background Windows application. Electron supplies packaging, the tray icon, single-instance behavior, Start-with-Windows support, and safe opening in the system browser. It does not create an Electron browser window.
 
 The installed controller uses Node's built-in SQLite support and does not require Docker, PostgreSQL, Redis, or an external SMS provider. The Fastify/PostgreSQL/Redis application remains the multi-tenant server deployment option.
 
@@ -14,7 +14,7 @@ The installed controller uses Node's built-in SQLite support and does not requir
 Chrome / Edge on Windows
         │ loopback session cookie
         ▼
-Nabda Controller :3210 ── SQLite queue
+نبضة :3210 ── SQLite queue
         ▲
         │ authenticated /v1/device/* on private LAN
         │ one message per claim

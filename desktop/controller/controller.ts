@@ -163,6 +163,47 @@ export class LocalController {
     return { imported: accepted.length, duplicates, invalid, total: input.contacts.length };
   }
 
+  syncDeviceContacts(device: DevicePrincipal, input: Record<string, unknown>): { imported: number; duplicates: number; invalid: number; total: number } {
+    if (!Array.isArray(input.contacts) || input.contacts.length < 1 || input.contacts.length > 500) {
+      throw new ControllerError(422, "validation_error", "Sync between 1 and 500 phone contacts per batch.");
+    }
+    const existingPhones = new Set(this.repository.listContacts().map((contact) => contact.phone));
+    const accepted: Array<{ name: string; phone: string }> = [];
+    let duplicates = 0;
+    let invalid = 0;
+    for (const value of input.contacts) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        invalid += 1;
+        continue;
+      }
+      const row = value as Record<string, unknown>;
+      try {
+        const name = requireText(row.name, "Contact name", 200);
+        const phone = normalizeDesktopPhone(requireText(row.phone, "Phone", 32));
+        if (existingPhones.has(phone)) {
+          duplicates += 1;
+          continue;
+        }
+        existingPhones.add(phone);
+        accepted.push({ name, phone });
+      } catch {
+        invalid += 1;
+      }
+    }
+    const at = iso();
+    this.database.db.exec("BEGIN IMMEDIATE");
+    try {
+      for (const contact of accepted) this.repository.createContact(contact);
+      this.database.db.prepare("UPDATE controller_devices SET last_seen_at = ?, updated_at = ? WHERE id = ?")
+        .run(at, at, device.id);
+      this.database.db.exec("COMMIT");
+    } catch (error) {
+      this.database.db.exec("ROLLBACK");
+      throw new ControllerError(422, "contact_sync_failed", error instanceof Error ? error.message : "Phone contact sync failed.");
+    }
+    return { imported: accepted.length, duplicates, invalid, total: input.contacts.length };
+  }
+
   setOptOut(contactId: string, optedOut: boolean): void {
     const contact = this.repository.getContact(contactId);
     if (!contact) throw new ControllerError(404, "not_found", "Contact not found.");

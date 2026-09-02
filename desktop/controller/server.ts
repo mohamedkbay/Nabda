@@ -111,6 +111,7 @@ export async function startControllerServer(input: {
         const device = input.controller.authenticateDevice(token);
         const payload = await body(request);
         if (path === "/v1/device/heartbeat" && method === "POST") return json(response, 200, input.controller.heartbeat(device, payload));
+        if (path === "/v1/device/contacts/import" && method === "POST") return json(response, 201, input.controller.syncDeviceContacts(device, payload));
         if (path === "/v1/device/messages/claim" && method === "POST") return json(response, 200, input.controller.claim(device, payload));
         const begin = path.match(/^\/v1\/device\/messages\/([0-9a-f-]{36})\/begin$/i);
         if (begin && method === "POST") return json(response, 200, input.controller.begin(device, begin[1] as string, payload));
@@ -137,7 +138,7 @@ export async function startControllerServer(input: {
         });
         return response.end();
       }
-      if (!authenticated) throw new ControllerError(401, "dashboard_locked", "Open Nabda Controller from its Windows tray icon.");
+      if (!authenticated) throw new ControllerError(401, "dashboard_locked", "Open نبضة from its Windows tray icon.");
 
       if (path === "/" && method === "GET") {
         response.writeHead(200, {

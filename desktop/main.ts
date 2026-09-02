@@ -11,6 +11,12 @@ let database: DesktopDatabase | undefined;
 let controller: LocalController | undefined;
 let quitting = false;
 
+// Keep the pre-rename data directory so changing the visible product name never
+// hides an existing queue, pairing, settings, or contact book.
+const persistentUserDataPath = join(app.getPath("appData"), app.isPackaged ? "Nabda Controller" : "nabda-api-saas");
+app.setPath("userData", persistentUserDataPath);
+app.setName("نبضة");
+
 function privateIpv4(): string {
   const candidates = Object.values(networkInterfaces()).flatMap((entries) => entries ?? [])
     .filter((entry) => entry.family === "IPv4" && !entry.internal)
@@ -27,7 +33,7 @@ function rebuildTrayMenu(): void {
   if (!tray || !controller || !server) return;
   const launchAtLogin = app.getLoginItemSettings().openAtLogin;
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: "Open Nabda Controller", click: () => void openDashboard() },
+    { label: "Open نبضة", click: () => void openDashboard() },
     { label: `Phone gateway: ${controller.liveEnabled ? "enabled" : "locked"}`, enabled: false },
     { label: `Android URL: ${server.lanUrl}`, enabled: false },
     { type: "separator" },
@@ -43,7 +49,7 @@ function rebuildTrayMenu(): void {
       click: () => { controller?.setLiveEnabled(false); rebuildTrayMenu(); },
     },
     { type: "separator" },
-    { label: "Quit Nabda", click: () => { quitting = true; app.quit(); } },
+    { label: "Quit نبضة", click: () => { quitting = true; app.quit(); } },
   ]));
 }
 
@@ -55,7 +61,7 @@ async function bootstrap(): Promise<void> {
 
   const icon = nativeImage.createFromPath(join(app.getAppPath(), "build", "icon.png")).resize({ width: 20, height: 20 });
   tray = new Tray(icon);
-  tray.setToolTip("Nabda Controller — running in the background");
+  tray.setToolTip("نبضة — running in the background");
   tray.on("click", () => void openDashboard());
   rebuildTrayMenu();
   if (!process.argv.includes("--background")) await openDashboard();
@@ -66,7 +72,7 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on("second-instance", () => void openDashboard());
   app.whenReady().then(bootstrap).catch((issue: unknown) => {
-    dialog.showErrorBox("Nabda Controller could not start", issue instanceof Error ? issue.message : String(issue));
+    dialog.showErrorBox("نبضة could not start", issue instanceof Error ? issue.message : String(issue));
     quitting = true;
     app.quit();
   });

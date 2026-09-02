@@ -58,7 +58,7 @@
   },
   "build": {
     "appId": "com.nabda.controller",
-    "productName": "Nabda Controller",
+    "productName": "نبضة",
     "icon": "build/icon.png",
     "asar": true,
     "npmRebuild": false,

@@ -21,14 +21,15 @@ The platform is free. The standalone Windows Controller accepts up to **10,000 m
 
 ## Easiest option: Windows Controller
 
-For a single Windows computer and one Android phone, install **Nabda Controller**. It runs in the system tray, stores the queue in a local SQLite database, and opens its controls in Chrome, Edge, or your default browser. It does not require Docker, PostgreSQL, or Redis.
+For a single Windows computer and one Android phone, install **نبضة**. It runs in the system tray, stores the queue in a local SQLite database, and opens its controls in Chrome, Edge, or your default browser. It does not require Docker, PostgreSQL, or Redis.
 
 1. Install `Nabda-Controller-0.1.0-Setup-x64.exe`.
 2. Open Nabda from the Start menu. The browser dashboard opens at `http://127.0.0.1:3210`; you can also enter that address directly on the same computer.
-3. In **Device**, create a two-minute pairing QR. In Nabda Agent on Android, tap **Scan controller QR**. The code works once and never contains the permanent device key.
-4. Tap **Start connection** on Android. On a Dual-SIM phone, choose the exact sending SIM shown as `SIM 1 — carrier` or `SIM 2 — carrier`. For live SMS, type `ENABLE_LIVE_SMS` in Windows and complete the separate Android confirmation.
-5. Add one contact or import CSV, TXT, or VCF. The importer supports `Name,Emails,PhoneNumbers` and expands semicolon-separated numbers into separate contacts.
-6. Queue one message or create a controlled contact campaign in the browser.
+3. In **Device**, create a two-minute pairing QR. In **نبضة** on Android, tap **Scan controller QR**. The code works once and never contains the permanent device key.
+4. Allow contact access when Android asks after pairing; names and numbers are copied directly to Windows. You can repeat this at any time with **Sync phone contacts** in the Android app. Existing numbers are skipped, and phone contacts are not automatically marked as campaign-approved.
+5. Tap **Start connection** on Android. On a Dual-SIM phone, choose the exact sending SIM shown as `SIM 1 — carrier` or `SIM 2 — carrier`. For live SMS, type `ENABLE_LIVE_SMS` in Windows and complete the separate Android confirmation.
+6. You can also add one contact manually or import CSV, TXT, or VCF. The file importer supports `Name,Emails,PhoneNumbers` and expands semicolon-separated numbers into separate contacts.
+7. Queue one message or create a controlled contact campaign in the browser.
 
 Closing the browser does not stop Nabda. The controller and queue continue in the Windows background. Click the tray icon to reopen the dashboard, enable **Start with Windows** if wanted, or use **Lock carrier sending** for an immediate stop.
 
@@ -146,7 +147,7 @@ The verified same-LAN debug APK is:
 android-agent/artifacts/Nabda-Agent-LAN-0.1.0-debug.apk
 ```
 
-On its first launch, the live APK immediately asks for the Android SMS and phone-state permissions. Android requires the phone owner to tap **Allow** once; apps cannot grant these permissions to themselves. The choice is retained by Android, while carrier dispatch remains separately controlled from Nabda Controller.
+On its first launch, the live APK immediately asks for the Android SMS and phone-state permissions. Android requires the phone owner to tap **Allow** once; apps cannot grant these permissions to themselves. The choice is retained by Android, while carrier dispatch remains separately controlled from **نبضة** on Windows.
 
 Install it over USB:
 

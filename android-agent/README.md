@@ -1,4 +1,4 @@
-# Nabda Android Agent
+# نبضة for Android
 
 A small native Android gateway built with Java, SDK views, `HttpURLConnection`, Android Keystore, Google Code Scanner, and one foreground service. It has no Flutter, React Native, Compose, Retrofit, or local database dependency. QR scanning is delegated to Google Play services and does not require camera permission in the app.
 
@@ -24,12 +24,13 @@ artifacts/Nabda-Agent-LAN-0.1.0-debug.apk
 
 ## Windows Controller setup (recommended)
 
-1. Start Nabda Controller on Windows and open **Device**.
+1. Start **نبضة** on Windows and open **Device**.
 2. Click **Create pairing QR**. The code expires after two minutes and works once.
 3. On Android, tap **Scan controller QR** and scan the screen.
-4. On a Dual-SIM phone, choose the exact sending subscription shown as **SIM 1 — carrier** or **SIM 2 — carrier**. The choice is encrypted and remains locked while the agent is running.
-5. Tap **Start connection**. The device token is returned by the one-time exchange and encrypted with Android Keystore; it is never typed or copied.
-6. For the live build, allow the SMS and phone-state permissions when Android asks on first open. Android remembers the decision. The Windows carrier lock must also be enabled before queued messages can leave the computer.
+4. Android asks whether نبضة may read contacts. Allow it to copy the phone book immediately, or tap **Sync phone contacts** later. Contacts are sent in small authenticated batches over the local network; duplicates and invalid numbers are skipped.
+5. On a Dual-SIM phone, choose the exact sending subscription shown as **SIM 1 — carrier** or **SIM 2 — carrier**. The choice is encrypted and remains locked while the agent is running.
+6. Tap **Start connection**. The device token is returned by the one-time exchange and encrypted with Android Keystore; it is never typed or copied.
+7. For the live build, allow the SMS and phone-state permissions when Android asks on first open. Android remembers the decision. The Windows carrier lock must also be enabled before queued messages can leave the computer.
 
 Both devices must remain on the same trusted Wi-Fi. The debug URL policy accepts HTTP only for loopback, the emulator gateway, and RFC1918 private addresses. Release builds require HTTPS.
 
@@ -48,10 +49,11 @@ The multi-tenant API server currently keeps its administrative token-provisionin
 The foreground service performs:
 
 1. `POST /v1/device/heartbeat`
-2. `POST /v1/device/messages/claim`
-3. `POST /v1/device/messages/{id}/begin`
-4. Android SMS dispatch
-5. `POST /v1/device/messages/{id}/events`
+2. `POST /v1/device/contacts/import` when the user requests a phone-book sync
+3. `POST /v1/device/messages/claim`
+4. `POST /v1/device/messages/{id}/begin`
+5. Android SMS dispatch
+6. `POST /v1/device/messages/{id}/events`
 
 It claims one item at a time. Leases and attempt IDs prevent concurrent or duplicate work. Encrypted pending state survives process interruption; if the app restarts during an uncertain carrier operation, Nabda marks it for manual review and does not retry blindly.
 
@@ -60,6 +62,7 @@ It claims one item at a time. Leases and attempt IDs prevent concurrent or dupli
 - The device bearer token is encrypted using an AES-GCM key held by Android Keystore.
 - Redirects are disabled so a token cannot be forwarded to another host.
 - Responses are size-limited and network operations have timeouts.
+- Contact access is requested by Android, sync requires the paired device token, and imported contacts remain local. A phone-book entry is not treated as campaign consent.
 - Real SMS requires the live build flag, Android runtime permission, an explicit SIM choice, and the Windows carrier lock.
 - Live dispatch requires an explicit active SIM subscription and never falls back to Android's default SIM.
 - The service reconnects after Wi-Fi loss and continues without downloading the campaign in bulk.

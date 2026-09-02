@@ -30,7 +30,7 @@ android {
             versionNameSuffix '-simulation'
             buildConfigField 'boolean', 'SIMULATION_ONLY', 'true'
             buildConfigField 'boolean', 'LIVE_SMS_COMPILED_IN', 'false'
-            resValue 'string', 'app_name', 'Nabda Agent (Simulation)'
+            resValue 'string', 'app_name', 'نبضة (محاكاة)'
             resValue 'string', 'mode_badge', 'SIMULATION · NO SMS'
             resValue 'string', 'flavor_subtitle', 'Add the server details from your Nabda dashboard. This build cannot send carrier SMS.'
         }
@@ -38,7 +38,7 @@ android {
             dimension 'transport'
             buildConfigField 'boolean', 'SIMULATION_ONLY', 'false'
             buildConfigField 'boolean', 'LIVE_SMS_COMPILED_IN', liveSmsEnabled.toString()
-            resValue 'string', 'app_name', 'Nabda Agent'
+            resValue 'string', 'app_name', 'نبضة'
             resValue 'string', 'mode_badge', 'LIVE SMS · INTERNAL SIDELOAD'
             resValue 'string', 'flavor_subtitle', 'Connect this company-owned phone to its Nabda workspace.'
         }

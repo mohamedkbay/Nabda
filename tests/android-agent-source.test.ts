@@ -16,6 +16,10 @@ describe("Android phone permission flow", () => {
     expect(liveGate).toContain("requestCarrierPermissions()");
     expect(simulationGate).toContain("Simulation is intentionally permission-free");
     expect(baseManifest).not.toContain("android.permission.SEND_SMS");
+    expect(baseManifest).toContain("android.permission.READ_CONTACTS");
     expect(liveManifest).toContain("android.permission.SEND_SMS");
+    expect(activity).toContain("ContactsContract.CommonDataKinds.Phone.CONTENT_URI");
+    expect(activity).toContain('apiClient.post("/v1/device/contacts/import"');
+    expect(activity).toContain("beginContactSync();");
   });
 });

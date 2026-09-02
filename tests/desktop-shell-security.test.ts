@@ -9,7 +9,7 @@ describe("Windows background controller security policy", () => {
     const html = await readFile(join(process.cwd(), "desktop/controller/web/index.html"), "utf8");
     const css = await readFile(join(process.cwd(), "desktop/controller/web/styles.css"), "utf8");
     const renderer = await readFile(join(process.cwd(), "desktop/controller/web/app.js"), "utf8");
-    expect(html).toContain("Nabda Controller");
+    expect(html).toContain("<title>نبضة</title>");
     expect(html).toContain('lang="en"');
     for (const page of ["dashboard", "messages", "history", "contacts", "device"]) expect(html).toContain(`id="view-${page}"`);
     expect(html).not.toContain('id="view-campaigns"');
@@ -39,6 +39,8 @@ describe("Windows background controller security policy", () => {
     expect(source).toContain("shell.openExternal");
     expect(source).toContain("requestSingleInstanceLock");
     expect(source).toContain("Start with Windows");
+    expect(source).toContain('app.setName("نبضة")');
+    expect(source).toContain('app.setPath("userData", persistentUserDataPath)');
     expect(source).not.toContain("BrowserWindow");
   });
 
