@@ -85,14 +85,14 @@ export class LocalController {
         contacts: contacts.length,
         queued: messages.filter((message) => ["queued", "processing"].includes(message.status)).length,
         sent: messages.filter((message) => ["sent", "delivered"].includes(message.status)).length,
-        failed: messages.filter((message) => ["failed", "expired", "cancelled"].includes(message.status)).length,
+        failed: messages.filter((message) => ["failed", "expired"].includes(message.status)).length,
       },
       contacts: contacts.map((contact) => ({
         id: contact.id, name: contact.name, phone: contact.phone,
         consent_reference: contact.consentReference, opted_out: this.repository.isOptedOut(contact.phone),
       })),
       messages: messages.map((message) => ({
-        id: message.id, to: message.to, content: message.content, status: message.status,
+        id: message.id, contact_id: message.contactId, to: message.to, content: message.content, status: message.status,
         failure_reason: message.failureReason, scheduled_at: message.scheduledAt,
         created_at: message.createdAt, updated_at: message.updatedAt,
       })),
@@ -100,14 +100,20 @@ export class LocalController {
   }
 
   createContact(input: Record<string, unknown>) {
-    if (input.consent_confirmed !== true) throw new ControllerError(422, "consent_required", "Confirm recipient consent before saving.");
     try {
+      const phone = normalizeDesktopPhone(requireText(input.phone, "Phone", 32));
+      const existing = this.repository.listContacts().find((contact) => contact.phone === phone);
+      if (existing) throw new ControllerError(409, "duplicate_contact", `This number is already saved as ${existing.name}.`);
+      const consentReference = input.consent_confirmed === true
+        ? requireText(input.consent_reference, "Consent reference", 500)
+        : undefined;
       return this.repository.createContact({
         name: requireText(input.name, "Contact name", 200),
-        phone: requireText(input.phone, "Phone", 32),
-        consentReference: requireText(input.consent_reference, "Consent reference", 500),
+        phone,
+        ...(consentReference ? { consentReference } : {}),
       });
     } catch (error) {
+      if (error instanceof ControllerError) throw error;
       throw new ControllerError(422, "validation_error", error instanceof Error ? error.message : "Invalid contact.");
     }
   }
@@ -175,9 +181,24 @@ export class LocalController {
     const sendAt = input.send_at ? new Date(requireText(input.send_at, "Schedule", 50)) : undefined;
     if (sendAt && !Number.isFinite(sendAt.getTime())) throw new ControllerError(422, "validation_error", "Schedule is invalid.");
     try {
+      const phone = normalizeDesktopPhone(requireText(input.to, "Phone", 32));
+      const selectedContact = typeof input.contact_id === "string" && input.contact_id
+        ? this.repository.getContact(input.contact_id)
+        : null;
+      let contactId = selectedContact?.phone === phone ? selectedContact.id : undefined;
+      if (!contactId) {
+        const existing = this.repository.listContacts().find((contact) => contact.phone === phone);
+        contactId = existing?.id;
+      }
+      if (!contactId && input.save_contact === true) {
+        contactId = this.repository.createContact({
+          name: requireText(input.contact_name, "Contact name", 200),
+          phone,
+        }).id;
+      }
       return this.repository.createMessage({
-        to: requireText(input.to, "Phone", 32), content,
-        ...(typeof input.contact_id === "string" && input.contact_id ? { contactId: input.contact_id } : {}),
+        to: phone, content,
+        ...(contactId ? { contactId } : {}),
         ...(sendAt ? { scheduledAt: sendAt } : {}),
       });
     } catch (error) {

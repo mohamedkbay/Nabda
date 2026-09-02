@@ -16,6 +16,9 @@ describe("Windows background controller security policy", () => {
     expect(html).toContain('data-language="ar"');
     expect(html).toContain('name="send_until"');
     expect(html).toContain('name="messages_per_hour"');
+    expect(html).toContain('id="quick-save-contact"');
+    expect(html).toContain('id="message-history-search"');
+    expect(html).toContain('id="message-history-status"');
     expect(css).toContain("button:focus-visible");
     expect(css).toContain("@font-face");
     expect(renderer).toContain('"x-nabda-control": "1"');
@@ -23,6 +26,7 @@ describe("Windows background controller security policy", () => {
     expect(renderer).toContain("/control-api/pairing");
     expect(renderer).toContain("/control-api/contacts/import");
     expect(renderer).toContain("nabda-controller-language");
+    expect(renderer).not.toContain("event.currentTarget.reset()");
     expect(renderer).not.toContain("x-api-key");
     expect(html).not.toContain("httpSMS");
   });

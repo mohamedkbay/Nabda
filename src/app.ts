@@ -673,7 +673,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
         throw new AppError(422, "validation_error", "metadata must not exceed 4096 bytes.");
       }
       const phone = normalizeE164(parsed.data.to);
-      if (!phone) throw new AppError(422, "invalid_phone", "to must be a valid E.164 phone number.");
+      if (!phone) throw new AppError(422, "invalid_phone", "to must be a valid phone number; Libyan numbers may omit +218.");
       const requestTime = now();
       const scheduledAt = parsed.data.scheduled_at ? new Date(parsed.data.scheduled_at) : requestTime;
       if (scheduledAt < new Date(requestTime.getTime() - 1000)) {
@@ -730,7 +730,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       const parsed = optOutBodySchema.safeParse(request.body);
       if (!parsed.success) throw new AppError(422, "validation_error", "The request body is invalid.", parsed.error.flatten());
       const phone = normalizeE164(parsed.data.phone);
-      if (!phone) throw new AppError(422, "invalid_phone", "phone must be a valid E.164 phone number.");
+      if (!phone) throw new AppError(422, "invalid_phone", "phone must be valid; Libyan numbers may omit +218.");
       const result = await options.repository.addOptOut({
         organizationId: principal.organizationId,
         apiKeyId: principal.apiKeyId,
@@ -764,7 +764,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
         throw new AppError(422, "validation_error", "metadata must not exceed 4096 bytes.");
       }
       const phone = normalizeE164(parsed.data.phone);
-      if (!phone) throw new AppError(422, "invalid_phone", "phone must be a valid E.164 phone number.");
+      if (!phone) throw new AppError(422, "invalid_phone", "phone must be valid; Libyan numbers may omit +218.");
       const result = await options.repository.upsertContact({
         organizationId: principal.organizationId,
         apiKeyId: principal.apiKeyId,

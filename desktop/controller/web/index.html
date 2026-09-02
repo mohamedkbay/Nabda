@@ -41,23 +41,28 @@
     </header>
 
     <section class="view active" id="view-dashboard">
-      <div class="dashboard-grid">
-        <article class="card dashboard-summary">
-          <div><p class="section-kicker">THIS MONTH</p><h2>Message center</h2></div>
-          <div class="summary-main"><strong id="used-count">0</strong><span>messages added to your queue</span><small><b id="usage-left">5,000</b> available this month</small></div>
-          <div class="usage-bar"><i id="usage-meter"></i></div>
-          <div class="summary-mini-grid">
-            <div><strong id="queued-count">0</strong><small>Waiting</small></div>
-            <div><strong id="sent-count">0</strong><small>Sent</small></div>
-            <div><strong id="failed-count">0</strong><small>Needs review</small></div>
-          </div>
-        </article>
+      <div class="overview-shell">
+        <header class="overview-welcome">
+          <div><p class="section-kicker">NABDA CONTROLLER</p><h1>Your messages, at a glance.</h1><p>Send one message, check the queue, or open your connected phone.</p></div>
+          <div class="overview-actions"><button class="primary-action" type="button" data-focus-message><i data-lucide="plus"></i> New message</button><button class="secondary-button" type="button" data-view-target="device"><i data-lucide="smartphone"></i> Phone settings</button></div>
+        </header>
+
+        <section class="overview-stats" aria-label="Workspace summary">
+          <article><span class="overview-stat-icon"><i data-lucide="clock-3"></i></span><div><strong id="queued-count">0</strong><small>Waiting</small></div></article>
+          <article><span class="overview-stat-icon"><i data-lucide="check-check"></i></span><div><strong id="sent-count">0</strong><small>Sent</small></div></article>
+          <article><span class="overview-stat-icon"><i data-lucide="users-round"></i></span><div><strong id="contacts-count">0</strong><small>Contacts</small></div></article>
+          <article><span class="overview-stat-icon"><i data-lucide="circle-alert"></i></span><div><strong id="failed-count">0</strong><small>Needs review</small></div></article>
+        </section>
+
+        <div class="overview-grid">
 
         <article class="card dashboard-composer">
           <div class="card-heading"><div><p class="section-kicker">QUICK SEND</p><h2>New message</h2></div><span class="safety-chip">1 at a time</span></div>
           <form id="message-form" class="stack-form">
             <label>Recipient<select id="message-contact" name="contact_id"><option value="">Enter a number manually</option></select></label>
-            <label>Phone number<input id="message-phone" name="to" inputmode="tel" placeholder="+2189XXXXXXXX" required /></label>
+            <label>Phone number<input id="message-phone" name="to" inputmode="tel" placeholder="0912345678 or +218912345678" required /><small class="field-help">+218 is optional for Libyan numbers.</small></label>
+            <label class="save-contact-check"><input id="quick-save-contact" name="save_contact" type="checkbox" /><span>Save this number to contacts</span></label>
+            <label id="quick-contact-name-field" hidden>Contact name<input name="contact_name" maxlength="200" placeholder="Name for next time" /></label>
             <label>Message<textarea id="message-content" name="content" rows="3" maxlength="160" placeholder="Write an expected transactional message…" required></textarea></label>
             <div class="message-meta"><span id="character-count">0 / 160</span><span>Single SMS segment</span></div>
             <label>Send time<input name="send_at" type="datetime-local" /></label>
@@ -66,31 +71,25 @@
           </form>
         </article>
 
-        <article class="card dashboard-device">
-          <div class="card-heading"><div><p class="section-kicker">ANDROID ROUTE</p><h2>Your sending phone</h2></div><span class="connection-chip" id="device-chip">Not paired</span></div>
-          <div class="phone-visual"><span class="phone-speaker"></span><i data-lucide="activity"></i><small id="phone-visual-status">Waiting for QR pairing</small></div>
-          <p class="delivery-note" id="delivery-note" hidden></p>
-          <dl class="device-facts"><div><dt>Controller</dt><dd id="lan-url">—</dd></div><div><dt>Last heartbeat</dt><dd id="last-seen">Never</dd></div><div><dt>Carrier sending</dt><dd id="live-state">Locked</dd></div></dl>
-          <button class="secondary-button wide" type="button" data-view-target="device"><i data-lucide="scan-line"></i> Connect with QR</button>
-        </article>
+          <aside class="overview-side">
+            <article class="card dashboard-device compact-device">
+              <div class="card-heading"><div><p class="section-kicker">PHONE</p><h2>Sending device</h2></div><span class="connection-chip" id="device-chip">Not paired</span></div>
+              <div class="compact-device-state"><span><i data-lucide="smartphone"></i></span><div><strong id="phone-visual-status">Waiting for QR pairing</strong><small>Last heartbeat: <b id="last-seen">Never</b></small></div></div>
+              <p class="delivery-note" id="delivery-note" hidden></p>
+              <dl class="device-facts"><div><dt>Controller</dt><dd id="lan-url">—</dd></div><div><dt>Carrier sending</dt><dd id="live-state">Locked</dd></div></dl>
+              <button class="secondary-button wide" type="button" data-view-target="device">Open phone settings <i data-lucide="arrow-right"></i></button>
+            </article>
 
-        <article class="card dashboard-activity">
-          <div class="card-heading"><div><p class="section-kicker">LIVE QUEUE</p><h2>Recent activity</h2></div><button class="icon-button" type="button" data-refresh aria-label="Refresh"><i data-lucide="refresh-cw"></i></button></div>
-          <div class="activity-list" id="dashboard-activity"></div>
-          <button class="text-button" type="button" data-view-target="messages">Open message history <i data-lucide="arrow-right"></i></button>
-        </article>
+            <article class="card dashboard-activity compact-activity">
+              <div class="card-heading"><div><p class="section-kicker">RECENT</p><h2>Latest messages</h2></div><button class="icon-button" type="button" data-refresh aria-label="Refresh"><i data-lucide="refresh-cw"></i></button></div>
+              <div class="activity-list" id="dashboard-activity"></div>
+              <button class="text-button" type="button" data-view-target="messages" data-scroll-target="message-history">Open message history <i data-lucide="arrow-right"></i></button>
+            </article>
+          </aside>
+        </div>
 
-        <article class="card dashboard-contacts">
-          <div class="card-heading"><div><p class="section-kicker">RECIPIENTS</p><h2>Contact book</h2></div><span class="count-pill" id="contacts-count">0</span></div>
-          <div class="quick-contact-list" id="quick-contacts"></div>
-          <button class="text-button" type="button" data-view-target="contacts">Import or add contacts <i data-lucide="arrow-right"></i></button>
-        </article>
-
-        <article class="card dashboard-safety">
-          <div class="card-heading"><div><p class="section-kicker">DELIVERY GUARD</p><h2>Safety stays on</h2></div><span class="safety-ring"><i data-lucide="shield-check"></i></span></div>
-          <ul><li><i data-lucide="check"></i> Opt-outs checked before every claim</li><li><i data-lucide="check"></i> Phone receives one message only</li><li><i data-lucide="check"></i> Six-second dispatch fence</li><li><i data-lucide="check"></i> No blind retry after an uncertain send</li></ul>
-          <p>Designed for expected transactional messages on a trusted private network.</p>
-        </article>
+        <div class="overview-usage" aria-label="Monthly usage"><span><b id="used-count">0</b> used this month</span><span><b id="usage-left">5,000</b> available</span><div class="usage-bar"><i id="usage-meter"></i></div></div>
+        <div id="quick-contacts" hidden></div>
       </div>
     </section>
 
@@ -133,8 +132,13 @@
           <article class="card panel-card quiet-card"><i data-lucide="shield-alert"></i><h3>No spam automation</h3><p>Nabda does not remove carrier rules or recipient consent requirements. Stop requests are enforced before dispatch.</p></article>
         </aside>
       </div>
-      <article class="card panel-card message-history-card">
-        <div class="card-heading history-heading"><div><p class="section-kicker">QUEUE &amp; HISTORY</p><h2>All recent messages</h2></div><span class="muted-note">Queued messages can be cancelled before the phone begins.</span></div>
+      <article class="card panel-card message-history-card" id="message-history">
+        <div class="card-heading history-heading"><div><p class="section-kicker">MESSAGE HISTORY</p><h2>Message history</h2></div><span class="count-pill" id="message-history-count">0</span></div>
+        <div class="history-tools">
+          <label class="search-box"><i data-lucide="search"></i><input id="message-history-search" placeholder="Search name, number, or message" /></label>
+          <label class="history-filter">Status<select id="message-history-status"><option value="all">All statuses</option><option value="queued">Queued</option><option value="processing">Processing</option><option value="sent">Sent</option><option value="delivered">Delivered</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option><option value="expired">Expired</option></select></label>
+        </div>
+        <p class="muted-note history-note">Queued messages can be cancelled before the phone begins.</p>
         <div class="table-wrap"><table><thead><tr><th>Recipient</th><th>Message</th><th>Status</th><th>Scheduled</th><th>Created</th><th></th></tr></thead><tbody id="messages-table"></tbody></table></div>
         <div id="messages-empty" class="empty-state"><i data-lucide="inbox"></i><strong>No messages yet</strong><span>Use Quick send on Overview to add the first one.</span></div>
       </article>
@@ -147,9 +151,10 @@
             <div class="card-heading"><div><p class="section-kicker">ONE PERSON</p><h2>Add contact</h2></div><i data-lucide="user-round-plus"></i></div>
             <form id="contact-form" class="stack-form">
               <label>Name<input name="name" maxlength="200" required /></label>
-              <label>Phone<input name="phone" inputmode="tel" placeholder="+2189XXXXXXXX" required /></label>
-              <label>Consent reference<input name="consent_reference" maxlength="500" placeholder="Contract, ticket, booking…" required /></label>
-              <label class="consent-check"><input name="consent" type="checkbox" required /><span>This person expects transactional messages.</span></label>
+              <label>Phone<input name="phone" inputmode="tel" placeholder="0912345678 or +218912345678" required /><small class="field-help">+218 is optional for Libyan numbers.</small></label>
+              <label class="save-contact-check"><input id="contact-has-consent" name="consent" type="checkbox" /><span>Store a consent reference for this contact</span></label>
+              <label id="contact-consent-reference" hidden>Consent reference<input name="consent_reference" maxlength="500" placeholder="Contract, ticket, booking…" /></label>
+              <p class="contact-safety-note">You can save a contact without consent. Sending still requires confirmation.</p>
               <button class="primary-action" type="submit">Save contact</button>
             </form>
           </article>

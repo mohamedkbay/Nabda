@@ -64,6 +64,29 @@ describe("Windows browser controller", () => {
     expect(controller.getDashboard("http://192.168.1.20:3210").counts.contacts).toBe(2);
   });
 
+  it("saves local-format contacts without forcing consent and can save a direct-send number", () => {
+    const { controller } = setup();
+    const contact = controller.createContact({ name: "Local contact", phone: "091 234 5678" });
+    expect(contact).toMatchObject({ phone: "+218912345678", consentReference: null });
+    expect(() => controller.createContact({ name: "Duplicate", phone: "218912345678" })).toThrow("already saved");
+
+    const message = controller.createMessage({
+      to: "0923456789",
+      content: "Expected service message",
+      save_contact: true,
+      contact_name: "Saved from quick send",
+      consent_confirmed: true,
+    });
+    expect(message.to).toBe("+218923456789");
+    const saved = controller.repository.listContacts().find((item) => item.name === "Saved from quick send");
+    expect(saved).toMatchObject({ phone: "+218923456789", consentReference: null });
+    expect(message.contactId).toBe(saved?.id);
+    expect(controller.getDashboard("http://192.168.1.20:3210").messages[0]).toMatchObject({
+      contact_id: saved?.id,
+      to: "+218923456789",
+    });
+  });
+
   it("stores only a hashed device token and completes the one-message Android lease flow", () => {
     const { database, controller } = setup();
     controller.createContact({

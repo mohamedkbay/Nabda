@@ -20,6 +20,10 @@ public final class TransportGate {
         stateStore.setLiveConfirmed(false);
     }
 
+    public void requestPermissionsOnLaunch() {
+        // Simulation is intentionally permission-free and can never send SMS.
+    }
+
     public void confirmThenRun(Runnable action) {
         action.run();
     }

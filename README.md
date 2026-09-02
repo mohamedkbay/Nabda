@@ -146,6 +146,8 @@ The verified same-LAN debug APK is:
 android-agent/artifacts/Nabda-Agent-LAN-0.1.0-debug.apk
 ```
 
+On its first launch, the live APK immediately asks for the Android SMS and phone-state permissions. Android requires the phone owner to tap **Allow** once; apps cannot grant these permissions to themselves. The choice is retained by Android, while carrier dispatch remains separately controlled from Nabda Controller.
+
 Install it over USB:
 
 ```bash
@@ -203,7 +205,7 @@ Message states are `queued`, `sent`, `delivered`, `failed`, `expired`, and `canc
 ## API rules
 
 - `Idempotency-Key` is mandatory for every create request.
-- Numbers use E.164 format.
+- International numbers use E.164. Libyan numbers may be submitted as `09…`, `9…`, `218…`, or `+218…`; Nabda stores the normalized E.164 value.
 - `purpose` is `transactional`, `authentication`, or `service`.
 - Every request stores a traceable `consent_reference`.
 - The MVP accepts one SMS segment: 160 GSM-7 units or 70 UTF-16 units.

@@ -426,6 +426,15 @@ describe("POST /v1/messages", () => {
     expect(invalidPhone.statusCode).toBe(422);
     expect(invalidPhone.json()).toMatchObject({ error: { code: "invalid_phone" } });
 
+    const localLibyanPhone = await postMessage(
+      context.app,
+      context.tenantA.rawApiKey,
+      "idem-test-00000007",
+      validMessageBody({ to: "091 234 5678" }),
+    );
+    expect(localLibyanPhone.statusCode).toBe(202);
+    expect(localLibyanPhone.json()).toMatchObject({ data: { to: "+218912345678" } });
+
     const multipartGsm = await postMessage(
       context.app,
       context.tenantA.rawApiKey,

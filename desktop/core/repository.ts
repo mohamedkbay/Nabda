@@ -24,8 +24,16 @@ function requiredText(value: string, name: string, max: number): string {
 }
 
 export function normalizeDesktopPhone(phone: string): string {
-  const normalized = phone.replace(/[\s()-]/g, "");
-  if (!/^\+[1-9]\d{6,14}$/.test(normalized)) throw new Error("Phone must use E.164 format");
+  const latinDigits = phone.replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)));
+  let normalized = latinDigits.replace(/[\s().-]/g, "");
+  if (normalized.startsWith("00")) normalized = `+${normalized.slice(2)}`;
+  else if (normalized.startsWith("218")) normalized = `+${normalized}`;
+  else if (/^0\d{8,9}$/.test(normalized)) normalized = `+218${normalized.slice(1)}`;
+  else if (/^9\d{8}$/.test(normalized)) normalized = `+218${normalized}`;
+  if (!/^\+[1-9]\d{6,14}$/.test(normalized)) {
+    throw new Error("Enter a valid phone number. Libyan numbers may start with 09, 9, 218, or +218");
+  }
   return normalized;
 }
 

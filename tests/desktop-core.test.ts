@@ -7,6 +7,7 @@ import {
   HttpSmsProviderError,
   LocalQueueWorker,
   MemorySecretStore,
+  normalizeDesktopPhone,
   SettingsSecretService,
   testProviderConnection,
 } from "../desktop/core/index.js";
@@ -23,6 +24,16 @@ afterEach(() => {
 });
 
 describe("local SQLite data", () => {
+  it("accepts Libyan numbers with or without the country prefix", () => {
+    expect(normalizeDesktopPhone("091 234 5678")).toBe("+218912345678");
+    expect(normalizeDesktopPhone("912345678")).toBe("+218912345678");
+    expect(normalizeDesktopPhone("218912345678")).toBe("+218912345678");
+    expect(normalizeDesktopPhone("00218 91 234 5678")).toBe("+218912345678");
+    expect(normalizeDesktopPhone("+218 (91) 234-5678")).toBe("+218912345678");
+    expect(normalizeDesktopPhone("٠٩١٢٣٤٥٦٧٨")).toBe("+218912345678");
+    expect(() => normalizeDesktopPhone("091")).toThrow("valid phone number");
+  });
+
   it("migrates to schema v4 with the local browser-controller tables", () => {
     const { database } = core();
     expect(database.db.prepare("PRAGMA user_version").get()).toEqual({ user_version: 4 });

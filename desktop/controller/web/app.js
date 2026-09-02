@@ -8,18 +8,20 @@ const translations = {
   "LOCAL CONTROLLER": "وحدة التحكم المحلية", "Main navigation": "التنقل الرئيسي", Overview: "نظرة عامة", Messages: "الرسائل", Contacts: "جهات الاتصال", Campaigns: "الحملات", Device: "الجهاز", Language: "اللغة",
   "Starting controller": "جارٍ تشغيل وحدة التحكم", "Local data stays on this computer": "تبقى البيانات المحلية على هذا الكمبيوتر", "NABDA LOCAL WORKSPACE": "مساحة نبضة المحلية", Refresh: "تحديث",
   "THIS MONTH": "هذا الشهر", "Message center": "مركز الرسائل", "messages added to your queue": "رسالة أضيفت إلى الطابور", "available this month": "متاحة هذا الشهر", Waiting: "قيد الانتظار", Sent: "مُرسلة", "Needs review": "تحتاج مراجعة",
+  "NABDA CONTROLLER": "وحدة تحكم نبضة", "Your messages, at a glance.": "رسائلك في نظرة واحدة.", "Send one message, check the queue, or open your connected phone.": "أرسل رسالة، راقب الطابور، أو افتح إعدادات هاتفك المتصل.", "Phone settings": "إعدادات الهاتف", "Workspace summary": "ملخص مساحة العمل", "PHONE": "الهاتف", "Sending device": "جهاز الإرسال", "Last heartbeat:": "آخر اتصال:", "Open phone settings": "فتح إعدادات الهاتف", "RECENT": "الأخيرة", "Latest messages": "أحدث الرسائل", "used this month": "مستخدمة هذا الشهر", available: "متاحة",
   "QUICK SEND": "إرسال سريع", "New message": "رسالة جديدة", "1 at a time": "رسالة واحدة كل مرة", Recipient: "المستلم", "Enter a number manually": "أدخل رقمًا يدويًا", "Phone number": "رقم الهاتف", Message: "الرسالة", "Write an expected transactional message…": "اكتب رسالة معاملات متوقعة…", "Single SMS segment": "مقطع SMS واحد", "Send time": "وقت الإرسال", "I confirm this recipient expects this message.": "أؤكد أن هذا المستلم يتوقع هذه الرسالة.", "Add to queue": "إضافة إلى الطابور",
+  "+218 is optional for Libyan numbers.": "يمكن كتابة الرقم الليبي مع +218 أو بدونه.", "Save this number to contacts": "احفظ هذا الرقم في جهات الاتصال", "Contact name": "اسم جهة الاتصال", "Name for next time": "اسم يظهر في المرة القادمة",
   "ANDROID ROUTE": "مسار أندرويد", "Your sending phone": "هاتف الإرسال", "Not paired": "غير مقترن", "Waiting for QR pairing": "بانتظار الاقتران عبر QR", Controller: "وحدة التحكم", "Last heartbeat": "آخر اتصال", "Carrier sending": "إرسال عبر الشبكة", Locked: "مقفل", Enabled: "مفعّل", "Connect with QR": "الربط عبر QR",
   "The phone is connected, but live SMS is locked. Open Device and enable it only when you are ready to send.": "الهاتف متصل، لكن إرسال SMS الحقيقي مقفل. افتح الجهاز وفعّله فقط عندما تكون مستعدًا للإرسال.",
   "LIVE QUEUE": "الطابور المباشر", "Recent activity": "النشاط الأخير", "Open message history": "فتح سجل الرسائل", RECIPIENTS: "المستلمون", "Contact book": "دليل جهات الاتصال", "Import or add contacts": "استيراد أو إضافة جهات اتصال", "DELIVERY GUARD": "حماية التسليم", "Safety stays on": "الحماية تبقى مفعّلة", "Opt-outs checked before every claim": "تُفحص قائمة الإيقاف قبل كل رسالة", "Phone receives one message only": "يستلم الهاتف رسالة واحدة فقط", "Six-second dispatch fence": "فاصل أمان ست ثوانٍ", "No blind retry after an uncertain send": "لا إعادة عمياء بعد إرسال غير مؤكد", "Designed for expected transactional messages on a trusted private network.": "مصمم لرسائل المعاملات المتوقعة على شبكة خاصة موثوقة.",
-  "QUEUE & HISTORY": "الطابور والسجل", "All recent messages": "كل الرسائل الأخيرة", "Queued messages can be cancelled before the phone begins.": "يمكن إلغاء الرسائل قبل أن يبدأ الهاتف بإرسالها.", Status: "الحالة", Scheduled: "موعد الإرسال", Created: "تاريخ الإنشاء", "No messages yet": "لا توجد رسائل بعد", "Use Quick send on Overview to add the first one.": "استخدم الإرسال السريع لإضافة أول رسالة.", Cancel: "إلغاء",
-  "ONE PERSON": "شخص واحد", "Add contact": "إضافة جهة اتصال", Name: "الاسم", Phone: "الهاتف", "Consent reference": "مرجع الموافقة", "Contract, ticket, booking…": "عقد أو تذكرة أو حجز…", "This person expects transactional messages.": "هذا الشخص يتوقع رسائل معاملات.", "Save contact": "حفظ جهة الاتصال", "Import a contact list": "استيراد قائمة جهات اتصال", "Choose a contact file": "اختر ملف جهات اتصال", "Up to 15 MB. Nothing is sent until you confirm.": "حتى 15 MB. لن يُرسل شيء قبل تأكيدك.", "No file selected.": "لم يتم اختيار ملف.", "Shared consent reference": "مرجع الموافقة المشترك", "Source or agreement for this list": "مصدر أو اتفاق هذه القائمة", "Every imported person expects these messages.": "كل شخص مستورد يتوقع هذه الرسائل.", "Import contacts": "استيراد جهات الاتصال", "SAVED LOCALLY": "محفوظة محليًا", "All contacts": "كل جهات الاتصال", "Search by name or number": "ابحث بالاسم أو الرقم", State: "الحالة", "No contacts saved": "لا توجد جهات اتصال محفوظة", "Add one or import your reference CSV file.": "أضف جهة اتصال أو استورد ملف CSV.", Restore: "استعادة", Stop: "إيقاف",
+  "QUEUE & HISTORY": "الطابور والسجل", "MESSAGE HISTORY": "سجل الرسائل", "Message history": "سجل الرسائل", "All recent messages": "كل الرسائل الأخيرة", "Queued messages can be cancelled before the phone begins.": "يمكن إلغاء الرسائل قبل أن يبدأ الهاتف بإرسالها.", "Search name, number, or message": "ابحث بالاسم أو الرقم أو نص الرسالة", "All statuses": "كل الحالات", Queued: "في الطابور", Processing: "قيد المعالجة", Delivered: "تم التسليم", Failed: "فشلت", Cancelled: "ملغاة", Expired: "منتهية", Status: "الحالة", Scheduled: "موعد الإرسال", Created: "تاريخ الإنشاء", "No messages yet": "لا توجد رسائل بعد", "No messages match these filters.": "لا توجد رسائل مطابقة لهذا البحث.", "Use Quick send on Overview to add the first one.": "استخدم الإرسال السريع لإضافة أول رسالة.", Cancel: "إلغاء",
+  "ONE PERSON": "شخص واحد", "Add contact": "إضافة جهة اتصال", Name: "الاسم", Phone: "الهاتف", "Consent reference": "مرجع الموافقة", "Contract, ticket, booking…": "عقد أو تذكرة أو حجز…", "Store a consent reference for this contact": "احفظ مرجع موافقة لهذه الجهة", "You can save a contact without consent. Sending still requires confirmation.": "يمكنك حفظ جهة الاتصال بدون موافقة؛ الإرسال سيظل يتطلب تأكيدًا.", "Save contact": "حفظ جهة الاتصال", "Import a contact list": "استيراد قائمة جهات اتصال", "Choose a contact file": "اختر ملف جهات اتصال", "Up to 15 MB. Nothing is sent until you confirm.": "حتى 15 MB. لن يُرسل شيء قبل تأكيدك.", "No file selected.": "لم يتم اختيار ملف.", "Shared consent reference": "مرجع الموافقة المشترك", "Source or agreement for this list": "مصدر أو اتفاق هذه القائمة", "Every imported person expects these messages.": "كل شخص مستورد يتوقع هذه الرسائل.", "Import contacts": "استيراد جهات الاتصال", "SAVED LOCALLY": "محفوظة محليًا", "All contacts": "كل جهات الاتصال", "Search by name or number": "ابحث بالاسم أو الرقم", State: "الحالة", "Needs consent": "بحاجة لموافقة", "No contacts saved": "لا توجد جهات اتصال محفوظة", "Add one or import your reference CSV file.": "أضف جهة اتصال أو استورد ملف CSV.", Restore: "استعادة", Stop: "إيقاف",
   "Compatible with": "متوافق مع", "Multiple numbers separated by semicolons become separate contacts.": "تتحول الأرقام المتعددة المفصولة بفاصلة منقوطة إلى جهات اتصال مستقلة.",
   "CONTROLLED BATCH": "دفعة مضبوطة", "Create campaign": "إنشاء حملة", "One-by-one dispatch": "إرسال واحدة تلو الأخرى", "Campaign name": "اسم الحملة", "Appointment reminders": "تذكيرات المواعيد", "Write one message for the selected contacts…": "اكتب رسالة واحدة لجهات الاتصال المحددة…", "Start time": "وقت البدء", "Expected recipients": "المستلمون المتوقعون", "Save contacts first.": "احفظ جهات الاتصال أولًا.", "Every selected recipient expects this transactional message.": "كل مستلم محدد يتوقع رسالة المعاملات هذه.", "Add campaign to queue": "إضافة الحملة إلى الطابور", "HOW IT MOVES": "كيف تتحرك", "Computer holds the campaign": "الكمبيوتر يحتفظ بالحملة", Validate: "تحقق", "Opt-outs and consent references are checked.": "تُفحص قوائم الإيقاف ومراجع الموافقة.", Queue: "الطابور", "Every recipient gets an individual local job.": "يحصل كل مستلم على مهمة محلية مستقلة.", Claim: "الاستلام", "The phone receives only the next eligible SMS.": "يستلم الهاتف رسالة SMS التالية المؤهلة فقط.", "No spam automation": "لا أتمتة للرسائل المزعجة", "Nabda does not remove carrier rules or recipient consent requirements. Stop requests are enforced before dispatch.": "لا تلغي نبضة قواعد شركة الاتصالات أو متطلبات موافقة المستلم. تُنفذ طلبات الإيقاف قبل الإرسال.",
   "NEW MESSAGE BATCH": "دفعة رسائل جديدة", "Choose who receives it": "اختر من يستلم الرسالة", "Controlled queue": "طابور مضبوط", "Batch name": "اسم الدفعة", "Select all": "تحديد الكل", Clear: "مسح التحديد", "Names beginning with": "الأسماء التي تبدأ بـ", "All letters": "كل الحروف", "0 selected": "٠ محدد", "Delivery timing": "توقيت الإرسال", "Send immediately": "إرسال فوري", "Use a time window": "استخدام فترة زمنية", From: "من", To: "إلى", "Messages per hour": "الرسائل في الساعة", "Messages enter the queue now, one at a time.": "تدخل الرسائل إلى الطابور الآن، واحدة كل مرة.", "Add messages to queue": "إضافة الرسائل إلى الطابور", "Computer holds the batch": "الكمبيوتر يحتفظ بالدفعة", Schedule: "جدولة", "Each recipient receives a separate time slot.": "يحصل كل مستلم على وقت إرسال مستقل.",
   "ONE-TIME PAIRING": "اقتران لمرة واحدة", "Connect your Android phone": "اربط هاتف أندرويد", Ready: "جاهز", "Phone name": "اسم الهاتف", "Company Android": "هاتف الشركة", "Create pairing QR": "إنشاء رمز QR للاقتران", "Scan this with Nabda Agent": "امسح الرمز بتطبيق Nabda Agent", "CURRENT PHONE": "الهاتف الحالي", "No phone paired": "لا يوجد هاتف مقترن", Connection: "الاتصال", "Controller address": "عنوان وحدة التحكم", "CARRIER SAFETY LOCK": "قفل أمان الشبكة", "Live SMS": "رسائل SMS حقيقية", "Allow Android carrier dispatch": "السماح بالإرسال من شريحة أندرويد", "Type ENABLE_LIVE_SMS": "اكتب ENABLE_LIVE_SMS", "Apply safety state": "تطبيق حالة الأمان",
   "Keep Windows and Android on the same trusted Wi-Fi. Create a code, open Nabda Agent, and tap": "أبقِ ويندوز وأندرويد على شبكة Wi-Fi موثوقة واحدة. أنشئ رمزًا، وافتح Nabda Agent، ثم اضغط", "Scan controller QR": "مسح QR لوحدة التحكم", "The QR works once. It does not contain the permanent device key.": "يعمل رمز QR مرة واحدة ولا يحتوي مفتاح الجهاز الدائم.", "Keep this locked during testing. Enabling it still requires confirmation and SMS permission on Android.": "اتركه مقفلًا أثناء الاختبار. يتطلب تفعيله تأكيدًا وصلاحية SMS على أندرويد.", "One-time Nabda phone pairing QR code": "رمز QR لاقتران هاتف نبضة لمرة واحدة",
-  Never: "أبدًا", "Just now": "الآن", Connected: "متصل", Paired: "مقترن", "Controller running": "وحدة التحكم تعمل", "Android phone is connected": "هاتف أندرويد متصل", "Connected and checking the queue": "متصل ويفحص الطابور", "Paired, waiting for the agent": "مقترن وبانتظار التطبيق", "Connected to the local queue": "متصل بالطابور المحلي", "Paired · waiting for heartbeat": "مقترن · بانتظار الاتصال", "No contacts yet": "لا توجد جهات اتصال بعد", "Import your CSV to begin.": "استورد ملف CSV للبدء.", "Your queue is quiet": "الطابور فارغ", "New activity will appear here.": "سيظهر النشاط الجديد هنا.", active: "نشط", "opted-out": "متوقف", stopped: "متوقف", queued: "في الطابور", sent: "مُرسلة", delivered: "تم التسليم", failed: "فشلت", cancelled: "ملغاة", expired: "منتهية", processing: "قيد المعالجة"
+  Never: "أبدًا", "Just now": "الآن", Connected: "متصل", Paired: "مقترن", "Controller running": "وحدة التحكم تعمل", "Android phone is connected": "هاتف أندرويد متصل", "Connected and checking the queue": "متصل ويفحص الطابور", "Paired, waiting for the agent": "مقترن وبانتظار التطبيق", "Connected to the local queue": "متصل بالطابور المحلي", "Paired · waiting for heartbeat": "مقترن · بانتظار الاتصال", "No contacts yet": "لا توجد جهات اتصال بعد", "Import your CSV to begin.": "استورد ملف CSV للبدء.", "Your queue is quiet": "الطابور فارغ", "New activity will appear here.": "سيظهر النشاط الجديد هنا.", active: "نشط", "needs-consent": "بحاجة لموافقة", "opted-out": "متوقف", stopped: "متوقف", queued: "في الطابور", sent: "مُرسلة", delivered: "تم التسليم", failed: "فشلت", cancelled: "ملغاة", expired: "منتهية", processing: "قيد المعالجة"
 };
 let language = localStorage.getItem("nabda-controller-language") === "ar" ? "ar" : "en";
 const originalText = new WeakMap();
@@ -76,7 +78,17 @@ function toast(message) {
 async function request(path, options = {}) {
   const response = await fetch(path, { credentials: "same-origin", ...options, headers: { ...headers, ...options.headers } });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error?.message || `Request failed (${response.status})`);
+  if (!response.ok) {
+    const message = payload.error?.message || `Request failed (${response.status})`;
+    const localized = language === "ar"
+      ? message.startsWith("This number is already saved as ")
+        ? `هذا الرقم محفوظ مسبقًا باسم ${message.slice("This number is already saved as ".length)}`
+        : message === "Enter a valid phone number. Libyan numbers may start with 09, 9, 218, or +218"
+          ? "أدخل رقمًا صحيحًا يبدأ بـ 09 أو 9 أو 218 أو +218."
+          : message
+      : message;
+    throw new Error(localized);
+  }
   return payload;
 }
 
@@ -117,7 +129,7 @@ function contactRows(contacts) {
     <td>${escapeHtml(contact.name)}</td>
     <td>${escapeHtml(contact.phone)}</td>
     <td>${escapeHtml(contact.consent_reference || "—")}</td>
-    <td>${contact.opted_out ? status("opted-out") : status("active")}</td>
+    <td>${contact.opted_out ? status("opted-out") : contact.consent_reference ? status("active") : status("needs-consent")}</td>
     <td><button class="table-action" data-optout="${contact.id}" data-value="${!contact.opted_out}">${t(contact.opted_out ? "Restore" : "Stop")}</button></td>
   </tr>`).join("");
 }
@@ -128,6 +140,29 @@ function renderContactsTable() {
   const contacts = state.contacts.filter((contact) => !query || `${contact.name} ${contact.phone}`.toLowerCase().includes(query));
   $("#contacts-table").innerHTML = contactRows(contacts);
   $("#contacts-empty").hidden = state.contacts.length > 0;
+}
+
+function renderMessageHistory() {
+  if (!state) return;
+  const query = $("#message-history-search").value.trim().toLowerCase();
+  const selectedStatus = $("#message-history-status").value;
+  const contacts = new Map(state.contacts.map((contact) => [contact.id, contact]));
+  const messages = state.messages.filter((message) => {
+    const contact = contacts.get(message.contact_id);
+    const searchable = `${contact?.name || ""} ${message.to} ${message.content}`.toLowerCase();
+    return (selectedStatus === "all" || message.status === selectedStatus) && (!query || searchable.includes(query));
+  });
+  $("#messages-table").innerHTML = messages.map((message) => {
+    const contact = contacts.get(message.contact_id);
+    const recipient = contact
+      ? `<span class="message-recipient"><strong>${escapeHtml(contact.name)}</strong><small>${escapeHtml(message.to)}</small></span>`
+      : escapeHtml(message.to);
+    return `<tr><td>${recipient}</td><td>${escapeHtml(message.content.length > 80 ? `${message.content.slice(0, 77)}…` : message.content)}</td><td>${status(message.status)}</td><td>${date(message.scheduled_at)}</td><td>${date(message.created_at)}</td><td>${message.status === "queued" ? `<button class="table-action" data-cancel="${message.id}">${t("Cancel")}</button>` : ""}</td></tr>`;
+  }).join("");
+  $("#message-history-count").textContent = number(messages.length);
+  $("#messages-empty").hidden = messages.length > 0;
+  $("#messages-empty strong").textContent = t(state.messages.length ? "No messages match these filters." : "No messages yet");
+  $("#messages-empty span").hidden = state.messages.length > 0;
 }
 
 function contactLetter(name) {
@@ -156,7 +191,7 @@ function updateScheduleEstimate() {
 
 function renderRecipientPicker() {
   if (!state) return;
-  const eligible = state.contacts.filter((contact) => !contact.opted_out)
+  const eligible = state.contacts.filter((contact) => !contact.opted_out && contact.consent_reference)
     .sort((left, right) => left.name.localeCompare(right.name, language === "ar" ? "ar" : "en", { sensitivity: "base" }));
   const validIds = new Set(eligible.map((contact) => contact.id));
   selectedCampaignContacts = new Set([...selectedCampaignContacts].filter((id) => validIds.has(id)));
@@ -182,7 +217,10 @@ function render() {
   $("#live-state").textContent = t(system.live_enabled ? "Enabled" : "Locked");
   $("#delivery-note").hidden = !device?.last_seen_at || system.live_enabled;
   $("#delivery-note").textContent = t("The phone is connected, but live SMS is locked. Open Device and enable it only when you are ready to send.");
-  $("#live-checkbox").checked = system.live_enabled;
+  const editingLiveSettings = document.activeElement === $("#live-checkbox")
+    || document.activeElement === $("#live-confirmation")
+    || $("#live-confirmation").value.length > 0;
+  if (!editingLiveSettings) $("#live-checkbox").checked = system.live_enabled;
   $("#used-count").textContent = number(system.monthly_used);
   $("#usage-left").textContent = number(Math.max(0, system.monthly_limit - system.monthly_used));
   $("#usage-meter").style.width = `${Math.min(100, system.monthly_used / system.monthly_limit * 100)}%`;
@@ -209,9 +247,8 @@ function render() {
 
   $("#dashboard-activity").innerHTML = messages.slice(0, 5).map((message) => `<div class="activity-row"><span class="activity-icon"><i data-lucide="${["sent", "delivered"].includes(message.status) ? "check" : message.status === "failed" ? "triangle-alert" : "clock-3"}"></i></span><span><strong>${escapeHtml(message.to)}</strong><small>${escapeHtml(message.content.length > 42 ? `${message.content.slice(0, 39)}…` : message.content)}</small></span><time>${relativeDate(message.created_at)}</time></div>`).join("") || `<div class="empty-state"><strong>${t("Your queue is quiet")}</strong><span>${t("New activity will appear here.")}</span></div>`;
 
-  $("#messages-table").innerHTML = messages.map((message) => `<tr><td>${escapeHtml(message.to)}</td><td>${escapeHtml(message.content.length > 80 ? `${message.content.slice(0, 77)}…` : message.content)}</td><td>${status(message.status)}</td><td>${date(message.scheduled_at)}</td><td>${date(message.created_at)}</td><td>${message.status === "queued" ? `<button class="table-action" data-cancel="${message.id}">${t("Cancel")}</button>` : ""}</td></tr>`).join("");
-  $("#messages-empty").hidden = messages.length > 0;
   renderContactsTable();
+  renderMessageHistory();
 
   renderRecipientPicker();
   localizeDom();
@@ -245,7 +282,29 @@ function startPairingCountdown(expiresAt) {
 $("#message-contact").addEventListener("change", (event) => {
   const option = event.target.selectedOptions[0];
   if (option?.dataset.phone) $("#message-phone").value = option.dataset.phone;
+  updateQuickSaveFields();
 });
+
+function updateQuickSaveFields() {
+  const manual = !$("#message-contact").value;
+  const checkbox = $("#quick-save-contact");
+  if (!manual) checkbox.checked = false;
+  checkbox.closest("label").hidden = !manual;
+  const field = $("#quick-contact-name-field");
+  field.hidden = !manual || !checkbox.checked;
+  field.querySelector("input").required = manual && checkbox.checked;
+}
+
+$("#quick-save-contact").addEventListener("change", updateQuickSaveFields);
+
+function updateContactConsentFields() {
+  const enabled = $("#contact-has-consent").checked;
+  const field = $("#contact-consent-reference");
+  field.hidden = !enabled;
+  field.querySelector("input").required = enabled;
+}
+
+$("#contact-has-consent").addEventListener("change", updateContactConsentFields);
 
 $("#message-content").addEventListener("input", (event) => {
   $("#character-count").textContent = `${event.target.value.length} / 160`;
@@ -253,10 +312,12 @@ $("#message-content").addEventListener("input", (event) => {
 
 $("#message-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const data = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const data = new FormData(form);
   try {
-    await request("/control-api/messages", { method: "POST", body: JSON.stringify({ contact_id: data.get("contact_id") || undefined, to: data.get("to"), content: data.get("content"), send_at: data.get("send_at") || undefined, consent_confirmed: data.get("consent") === "on" }) });
-    event.currentTarget.reset();
+    await request("/control-api/messages", { method: "POST", body: JSON.stringify({ contact_id: data.get("contact_id") || undefined, to: data.get("to"), content: data.get("content"), send_at: data.get("send_at") || undefined, save_contact: data.get("save_contact") === "on", contact_name: data.get("contact_name") || undefined, consent_confirmed: data.get("consent") === "on" }) });
+    form.reset();
+    updateQuickSaveFields();
     $("#character-count").textContent = "0 / 160";
     toast(language === "ar" ? "أُضيفت الرسالة إلى الطابور المحلي." : "Message added to the local queue.");
     await refresh();
@@ -265,10 +326,12 @@ $("#message-form").addEventListener("submit", async (event) => {
 
 $("#contact-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const data = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const data = new FormData(form);
   try {
     await request("/control-api/contacts", { method: "POST", body: JSON.stringify({ name: data.get("name"), phone: data.get("phone"), consent_reference: data.get("consent_reference"), consent_confirmed: data.get("consent") === "on" }) });
-    event.currentTarget.reset();
+    form.reset();
+    updateContactConsentFields();
     toast(language === "ar" ? "حُفظت جهة الاتصال محليًا." : "Contact saved locally.");
     await refresh();
   } catch (error) { toast(error.message); }
@@ -323,6 +386,8 @@ $("#contact-import-button").addEventListener("click", async () => {
 });
 
 $("#contact-search").addEventListener("input", renderContactsTable);
+$("#message-history-search").addEventListener("input", renderMessageHistory);
+$("#message-history-status").addEventListener("change", renderMessageHistory);
 
 $("#campaign-contacts").addEventListener("change", (event) => {
   if (!event.target.matches('input[name="contact_ids"]')) return;
@@ -341,7 +406,8 @@ $("#campaign-form").addEventListener("input", (event) => {
 
 $("#campaign-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const data = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const data = new FormData(form);
   try {
     if (!selectedCampaignContacts.size) throw new Error(language === "ar" ? "اختر مستلمًا واحدًا على الأقل." : "Select at least one recipient.");
     const windowMode = data.get("schedule_mode") === "window";
@@ -352,7 +418,7 @@ $("#campaign-form").addEventListener("submit", async (event) => {
       messages_per_hour: windowMode ? Number(data.get("messages_per_hour")) : 600,
       consent_confirmed: data.get("consent") === "on",
     }) });
-    event.currentTarget.reset();
+    form.reset();
     selectedCampaignContacts.clear();
     $("#contact-letter-filter").value = "all";
     renderRecipientPicker();
@@ -404,7 +470,16 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (target.dataset.view) return showView(target.dataset.view);
-  if (target.dataset.viewTarget) return showView(target.dataset.viewTarget);
+  if (target.dataset.viewTarget) {
+    showView(target.dataset.viewTarget);
+    if (target.dataset.scrollTarget) setTimeout(() => document.getElementById(target.dataset.scrollTarget)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    return;
+  }
+  if (target.hasAttribute("data-focus-message")) {
+    $("#message-contact").focus();
+    $("#message-form").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   try {
     if (target.matches("[data-refresh]")) await refresh();
     if (target.dataset.cancel) {
@@ -422,5 +497,7 @@ document.addEventListener("click", async (event) => {
 
 renderIcons();
 applyLanguage();
+updateQuickSaveFields();
+updateContactConsentFields();
 refresh();
 setInterval(refresh, 5000);

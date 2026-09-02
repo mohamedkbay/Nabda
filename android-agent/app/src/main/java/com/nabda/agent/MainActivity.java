@@ -64,6 +64,7 @@ public final class MainActivity extends Activity {
         transportGate = new TransportGate(this, liveConsent, stateStore);
         transportGate.initialize();
         simSelection.initialize();
+        transportGate.requestPermissionsOnLaunch();
 
         scanButton.setOnClickListener(view -> scanControllerCode());
         connectButton.setOnClickListener(view -> {
