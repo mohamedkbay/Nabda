@@ -151,7 +151,7 @@ export async function startControllerServer(input: {
         return response.end(html);
       }
       if (path === "/styles.css" && method === "GET") {
-        response.writeHead(200, { "content-type": "text/css; charset=utf-8", "cache-control": "public, max-age=3600", "x-content-type-options": "nosniff" });
+        response.writeHead(200, { "content-type": "text/css; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
         return response.end(css);
       }
       if (path === "/app.js" && method === "GET") {
@@ -175,11 +175,11 @@ export async function startControllerServer(input: {
         return response.end(cairo);
       }
       if (path === "/nabda-mark.svg" && method === "GET") {
-        response.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+        response.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
         return response.end(brandMark);
       }
       if (path === "/android-phone-frame.svg" && method === "GET") {
-        response.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+        response.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
         return response.end(phoneFrame);
       }
 

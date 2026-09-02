@@ -150,6 +150,10 @@ describe("Windows browser controller", () => {
     const brand = await fetch(`${base}/nabda-mark.svg`, { headers: { cookie: cookie as string } });
     expect(brand.status).toBe(200);
     expect(brand.headers.get("content-type")).toContain("image/svg+xml");
+    expect(brand.headers.get("cache-control")).toBe("no-store");
+    const stylesheet = await fetch(`${base}/styles.css`, { headers: { cookie: cookie as string } });
+    expect(stylesheet.status).toBe(200);
+    expect(stylesheet.headers.get("cache-control")).toBe("no-store");
     const state = await fetch(`${base}/control-api/state`, { headers: { cookie: cookie as string } });
     expect(state.status).toBe(200);
     await expect(state.json()).resolves.toMatchObject({ system: { lan_url: `http://192.168.1.20:${server.port}` } });

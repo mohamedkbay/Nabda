@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f8faf9" />
   <meta name="description" content="Local Nabda message queue and Android phone controller." />
   <title>Nabda Controller</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css?v=2" />
   <script src="/vendor/lucide.js" defer></script>
   <script src="/vendor/qrcode.js" defer></script>
   <script type="module" src="/app.js"></script>
@@ -14,7 +14,7 @@
 <body>
   <aside class="sidebar">
     <a class="brand" href="#" data-view-target="dashboard" aria-label="Nabda Controller home">
-      <img class="brand-mark" src="/nabda-mark.svg" alt="" />
+      <img class="brand-mark" src="/nabda-mark.svg?v=2" alt="" />
       <span><strong>Nabda</strong><small>LOCAL CONTROLLER</small></span>
     </a>
     <nav aria-label="Main navigation">
@@ -69,6 +69,7 @@
         <article class="card dashboard-device">
           <div class="card-heading"><div><p class="section-kicker">ANDROID ROUTE</p><h2>Your sending phone</h2></div><span class="connection-chip" id="device-chip">Not paired</span></div>
           <div class="phone-visual"><span class="phone-speaker"></span><i data-lucide="activity"></i><small id="phone-visual-status">Waiting for QR pairing</small></div>
+          <p class="delivery-note" id="delivery-note" hidden></p>
           <dl class="device-facts"><div><dt>Controller</dt><dd id="lan-url">—</dd></div><div><dt>Last heartbeat</dt><dd id="last-seen">Never</dd></div><div><dt>Carrier sending</dt><dd id="live-state">Locked</dd></div></dl>
           <button class="secondary-button wide" type="button" data-view-target="device"><i data-lucide="scan-line"></i> Connect with QR</button>
         </article>

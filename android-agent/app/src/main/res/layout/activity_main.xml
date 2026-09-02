@@ -19,15 +19,11 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/app_mark_background"
-                android:gravity="center"
-                android:text="N"
-                android:textColor="@color/white"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+            <ImageView
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_launcher" />
 
             <LinearLayout
                 android:layout_width="0dp"
