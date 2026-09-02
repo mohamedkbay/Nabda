@@ -113,6 +113,20 @@ describe("Windows browser controller", () => {
     expect(controller.getDashboard("http://192.168.1.20:3210").counts.queued).toBe(1);
   });
 
+  it("applies the selected hourly rate across a campaign window", () => {
+    const { controller } = setup();
+    const first = controller.createContact({ name: "Amina", phone: "+218910000041", consent_reference: "booking-1", consent_confirmed: true });
+    const second = controller.createContact({ name: "Basma", phone: "+218910000042", consent_reference: "booking-2", consent_confirmed: true });
+    const start = new Date(Date.now() + 60_000);
+    controller.createCampaign({
+      name: "Windowed reminders", content: "Expected reminder", contact_ids: [first.id, second.id], consent_confirmed: true,
+      send_at: start.toISOString(), send_until: new Date(start.getTime() + 3_600_000).toISOString(), messages_per_hour: 2,
+    });
+    const schedules = controller.repository.listMessages().map((message) => new Date(message.scheduledAt).getTime()).sort();
+    expect(schedules).toHaveLength(2);
+    expect((schedules[1] ?? 0) - (schedules[0] ?? 0)).toBe(30 * 60_000);
+  });
+
   it("serves health publicly and creates a protected session only for a loopback dashboard host", async () => {
     const { controller } = setup();
     const server = await startControllerServer({ controller, lanAddress: "192.168.1.20", port: 0 });
@@ -133,6 +147,9 @@ describe("Windows browser controller", () => {
     const page = await fetch(`${base}/`, { headers: { cookie: cookie as string } });
     expect(page.status).toBe(200);
     expect(await page.text()).toContain("Nabda Controller");
+    const brand = await fetch(`${base}/nabda-mark.svg`, { headers: { cookie: cookie as string } });
+    expect(brand.status).toBe(200);
+    expect(brand.headers.get("content-type")).toContain("image/svg+xml");
     const state = await fetch(`${base}/control-api/state`, { headers: { cookie: cookie as string } });
     expect(state.status).toBe(200);
     await expect(state.json()).resolves.toMatchObject({ system: { lan_url: `http://192.168.1.20:${server.port}` } });

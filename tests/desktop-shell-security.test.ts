@@ -5,19 +5,24 @@ import { describe, expect, it } from "vitest";
 import { SecretVault } from "../desktop/security/secret-vault.js";
 
 describe("Windows background controller security policy", () => {
-  it("ships an English browser dashboard for messages, contacts, campaigns, and devices", async () => {
+  it("ships a bilingual dashboard with batches merged into Messages", async () => {
     const html = await readFile(join(process.cwd(), "desktop/controller/web/index.html"), "utf8");
     const css = await readFile(join(process.cwd(), "desktop/controller/web/styles.css"), "utf8");
     const renderer = await readFile(join(process.cwd(), "desktop/controller/web/app.js"), "utf8");
     expect(html).toContain("Nabda Controller");
     expect(html).toContain('lang="en"');
-    for (const page of ["dashboard", "messages", "contacts", "campaigns", "device"]) expect(html).toContain(`id="view-${page}"`);
+    for (const page of ["dashboard", "messages", "contacts", "device"]) expect(html).toContain(`id="view-${page}"`);
+    expect(html).not.toContain('id="view-campaigns"');
+    expect(html).toContain('data-language="ar"');
+    expect(html).toContain('name="send_until"');
+    expect(html).toContain('name="messages_per_hour"');
     expect(css).toContain("button:focus-visible");
     expect(css).toContain("@font-face");
     expect(renderer).toContain('"x-nabda-control": "1"');
     expect(renderer).toContain("/control-api/campaigns");
     expect(renderer).toContain("/control-api/pairing");
     expect(renderer).toContain("/control-api/contacts/import");
+    expect(renderer).toContain("nabda-controller-language");
     expect(renderer).not.toContain("x-api-key");
     expect(html).not.toContain("httpSMS");
   });

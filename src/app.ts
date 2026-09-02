@@ -254,6 +254,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     postmanCollection,
     postmanEnvironment,
     openGraphImage,
+    favicon,
+    brandMark,
+    brandWordmark,
+    androidPhoneFrame,
   ] = await Promise.all([
     Promise.all(sitePages.map(async ({ route, file }) => [
       route,
@@ -268,6 +272,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     readFile(resolve(docsDirectory, "postman/nabda-api.postman_collection.json")),
     readFile(resolve(docsDirectory, "postman/nabda-local.postman_environment.json")),
     readFile(resolve(assetsDirectory, "nabda-og.png")),
+    readFile(resolve(publicDirectory, "favicon.svg")),
+    readFile(resolve(publicDirectory, "brand/nabda-mark.svg")),
+    readFile(resolve(publicDirectory, "brand/nabda-wordmark.svg")),
+    readFile(resolve(publicDirectory, "brand/android-phone-frame.svg")),
   ]);
 
   // The custom phone-agent protocol is legacy-only and is never registered by default.
@@ -430,6 +438,17 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     .type("image/png")
     .header("cache-control", "public, max-age=31536000, immutable")
     .send(openGraphImage));
+  for (const [route, asset] of [
+    ["/favicon.svg", favicon],
+    ["/brand/nabda-mark.svg", brandMark],
+    ["/brand/nabda-wordmark.svg", brandWordmark],
+    ["/brand/android-phone-frame.svg", androidPhoneFrame],
+  ] as const) {
+    app.get(route, async (_request, reply) => reply
+      .type("image/svg+xml; charset=utf-8")
+      .header("cache-control", "public, max-age=31536000, immutable")
+      .send(asset));
+  }
   app.get("/openapi.yaml", async (_request, reply) => reply
     .type("application/yaml; charset=utf-8")
     .header("cache-control", "no-cache")

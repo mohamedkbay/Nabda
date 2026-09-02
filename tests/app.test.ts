@@ -166,6 +166,19 @@ describe("health and API-key authentication", () => {
     expect(openGraphImage.headers["cache-control"]).toContain("immutable");
     expect(openGraphImage.rawPayload.subarray(0, 8))
       .toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+
+    for (const route of [
+      "/favicon.svg",
+      "/brand/nabda-mark.svg",
+      "/brand/nabda-wordmark.svg",
+      "/brand/android-phone-frame.svg",
+    ]) {
+      const vector = await context.app.inject({ method: "GET", url: route });
+      expect(vector.statusCode, route).toBe(200);
+      expect(vector.headers["content-type"], route).toContain("image/svg+xml");
+      expect(vector.headers["cache-control"], route).toContain("immutable");
+      expect(vector.body, route).toContain("<svg");
+    }
   });
 
   it("serves every marketing and help page at a clean route", async () => {

@@ -14,16 +14,19 @@
 <body>
   <aside class="sidebar">
     <a class="brand" href="#" data-view-target="dashboard" aria-label="Nabda Controller home">
-      <span class="brand-mark">N</span>
+      <img class="brand-mark" src="/nabda-mark.svg" alt="" />
       <span><strong>Nabda</strong><small>LOCAL CONTROLLER</small></span>
     </a>
     <nav aria-label="Main navigation">
       <button class="nav-item active" data-view="dashboard"><i data-lucide="house"></i><span>Overview</span></button>
       <button class="nav-item" data-view="messages"><i data-lucide="message-square-text"></i><span>Messages</span></button>
       <button class="nav-item" data-view="contacts"><i data-lucide="users-round"></i><span>Contacts</span></button>
-      <button class="nav-item" data-view="campaigns"><i data-lucide="rows-3"></i><span>Campaigns</span></button>
       <button class="nav-item" data-view="device"><i data-lucide="smartphone"></i><span>Device</span></button>
     </nav>
+    <div class="controller-language" role="group" aria-label="Language">
+      <button type="button" data-language="en" aria-pressed="true">EN</button>
+      <button type="button" data-language="ar" aria-pressed="false">العربية</button>
+    </div>
     <div class="sidebar-status" id="service-status">
       <span class="status-device"><i data-lucide="radio-tower"></i></span>
       <span class="pulse checking"></span>
@@ -91,9 +94,47 @@
     </section>
 
     <section class="view" id="view-messages">
-      <article class="card panel-card">
+      <div class="management-grid campaign-layout message-workspace">
+        <article class="card panel-card">
+          <div class="card-heading"><div><p class="section-kicker">NEW MESSAGE BATCH</p><h2>Choose who receives it</h2></div><span class="safety-chip">Controlled queue</span></div>
+          <form id="campaign-form" class="stack-form">
+            <label>Batch name<input name="name" maxlength="200" placeholder="Appointment reminders" required /></label>
+            <label>Message<textarea name="content" rows="4" maxlength="160" placeholder="Write one message for the selected contacts…" required></textarea></label>
+            <fieldset>
+              <legend>Expected recipients</legend>
+              <div class="recipient-tools">
+                <button type="button" class="small-filter" data-recipient-select="all">Select all</button>
+                <button type="button" class="small-filter" data-recipient-select="none">Clear</button>
+                <label>Names beginning with<select id="contact-letter-filter"><option value="all">All letters</option></select></label>
+                <strong id="selected-recipient-count">0 selected</strong>
+              </div>
+              <div id="campaign-contacts" class="contact-picker"><p class="empty-copy">Save contacts first.</p></div>
+            </fieldset>
+            <fieldset class="schedule-box">
+              <legend>Delivery timing</legend>
+              <div class="schedule-modes">
+                <label><input type="radio" name="schedule_mode" value="now" checked /> Send immediately</label>
+                <label><input type="radio" name="schedule_mode" value="window" /> Use a time window</label>
+              </div>
+              <div class="schedule-window" id="schedule-window" hidden>
+                <label>From<input name="send_at" type="datetime-local" /></label>
+                <label>To<input name="send_until" type="datetime-local" /></label>
+                <label>Messages per hour<input name="messages_per_hour" type="number" min="1" max="600" value="60" /></label>
+              </div>
+              <p class="schedule-estimate" id="schedule-estimate">Messages enter the queue now, one at a time.</p>
+            </fieldset>
+            <label class="consent-check"><input name="consent" type="checkbox" required /><span>Every selected recipient expects this transactional message.</span></label>
+            <button class="primary-action" type="submit">Add messages to queue</button>
+          </form>
+        </article>
+        <aside class="side-stack">
+          <article class="card panel-card"><div class="card-heading"><div><p class="section-kicker">HOW IT MOVES</p><h2>Computer holds the batch</h2></div><i data-lucide="list-ordered"></i></div><div class="flow-steps"><div><span>01</span><p><strong>Validate</strong>Opt-outs and consent references are checked.</p></div><div><span>02</span><p><strong>Schedule</strong>Each recipient receives a separate time slot.</p></div><div><span>03</span><p><strong>Claim</strong>The phone receives only the next eligible SMS.</p></div></div></article>
+          <article class="card panel-card quiet-card"><i data-lucide="shield-alert"></i><h3>No spam automation</h3><p>Nabda does not remove carrier rules or recipient consent requirements. Stop requests are enforced before dispatch.</p></article>
+        </aside>
+      </div>
+      <article class="card panel-card message-history-card">
         <div class="card-heading history-heading"><div><p class="section-kicker">QUEUE &amp; HISTORY</p><h2>All recent messages</h2></div><span class="muted-note">Queued messages can be cancelled before the phone begins.</span></div>
-        <div class="table-wrap"><table><thead><tr><th>Recipient</th><th>Message</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody id="messages-table"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Recipient</th><th>Message</th><th>Status</th><th>Scheduled</th><th>Created</th><th></th></tr></thead><tbody id="messages-table"></tbody></table></div>
         <div id="messages-empty" class="empty-state"><i data-lucide="inbox"></i><strong>No messages yet</strong><span>Use Quick send on Overview to add the first one.</span></div>
       </article>
     </section>
@@ -129,26 +170,6 @@
           <div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Consent reference</th><th>State</th><th></th></tr></thead><tbody id="contacts-table"></tbody></table></div>
           <div id="contacts-empty" class="empty-state"><i data-lucide="users-round"></i><strong>No contacts saved</strong><span>Add one or import your reference CSV file.</span></div>
         </article>
-      </div>
-    </section>
-
-    <section class="view" id="view-campaigns">
-      <div class="management-grid campaign-layout">
-        <article class="card panel-card">
-          <div class="card-heading"><div><p class="section-kicker">CONTROLLED BATCH</p><h2>Create campaign</h2></div><span class="safety-chip">One-by-one dispatch</span></div>
-          <form id="campaign-form" class="stack-form">
-            <label>Campaign name<input name="name" maxlength="200" placeholder="Appointment reminders" required /></label>
-            <label>Message<textarea name="content" rows="4" maxlength="160" placeholder="Write one message for the selected contacts…" required></textarea></label>
-            <label>Start time<input name="send_at" type="datetime-local" /></label>
-            <fieldset><legend>Expected recipients</legend><div id="campaign-contacts" class="contact-picker"><p class="empty-copy">Save contacts first.</p></div></fieldset>
-            <label class="consent-check"><input name="consent" type="checkbox" required /><span>Every selected recipient expects this transactional message.</span></label>
-            <button class="primary-action" type="submit">Add campaign to queue</button>
-          </form>
-        </article>
-        <aside class="side-stack">
-          <article class="card panel-card"><div class="card-heading"><div><p class="section-kicker">HOW IT MOVES</p><h2>Computer holds the campaign</h2></div><i data-lucide="list-ordered"></i></div><div class="flow-steps"><div><span>01</span><p><strong>Validate</strong>Opt-outs and consent references are checked.</p></div><div><span>02</span><p><strong>Queue</strong>Every recipient gets an individual local job.</p></div><div><span>03</span><p><strong>Claim</strong>The phone receives only the next eligible SMS.</p></div></div></article>
-          <article class="card panel-card quiet-card"><i data-lucide="shield-alert"></i><h3>No spam automation</h3><p>Nabda does not remove carrier rules or recipient consent requirements. Stop requests are enforced before dispatch.</p></article>
-        </aside>
       </div>
     </section>
 

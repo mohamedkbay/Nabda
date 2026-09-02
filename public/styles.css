@@ -74,11 +74,8 @@ code, pre, .endpoint-path { font-family: ui-monospace, SFMono-Regular, Menlo, Mo
 .site-header { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid color-mix(in srgb, var(--line) 82%, transparent); background: color-mix(in srgb, var(--canvas) 92%, transparent); backdrop-filter: blur(18px); }
 .header-inner { min-height: 72px; display: flex; align-items: center; gap: 30px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.08rem; text-decoration: none; letter-spacing: -.02em; }
-.brand-mark { width: 27px; height: 27px; position: relative; display: inline-grid; place-items: center; border-radius: 50%; background: var(--ink); }
-.brand-mark::before, .brand-mark::after, .brand-mark span { content: ""; position: absolute; border-radius: 999px; background: var(--paper); }
-.brand-mark::before { width: 3px; height: 12px; transform: translateX(-5px); }
-.brand-mark span { width: 3px; height: 17px; }
-.brand-mark::after { width: 3px; height: 8px; transform: translateX(5px); }
+.brand-mark { width: 29px; height: 29px; position: relative; display: inline-grid; flex: 0 0 auto; place-items: center; border-radius: 8px; background: url("/brand/nabda-mark.svg") center/contain no-repeat; }
+.brand-mark::before, .brand-mark::after, .brand-mark span { display: none; }
 .header-menu { flex: 1; display: flex; align-items: center; gap: 24px; }
 .main-nav { display: flex; align-items: center; gap: 3px; margin-inline: auto; }
 .main-nav a { padding: 8px 11px; border-radius: 9px; color: var(--muted); font-size: .86rem; font-weight: 650; text-decoration: none; white-space: nowrap; }
@@ -400,21 +397,15 @@ html[data-theme="dark"] .theme-toggle::before { content: "☀"; }
 .marketing-body .brand-mark {
   width: 31px;
   height: 31px;
-  border: 1px solid var(--graphite);
-  border-radius: 50%;
-  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  background: url("/brand/nabda-mark.svg") center/contain no-repeat;
 }
 
 .marketing-body .brand-mark::before,
 .marketing-body .brand-mark::after,
 .marketing-body .brand-mark span {
-  position: absolute;
-  top: 50%;
-  width: 3px;
-  border-radius: 3px;
-  background: var(--graphite);
-  transform: translateY(-50%);
-  content: "";
+  display: none;
 }
 
 .marketing-body .brand-mark::before { left: 7px; height: 5px; }
@@ -915,10 +906,10 @@ html.is-document-hidden [data-motion] * {
   right: 5.5%;
   width: 24%;
   height: 253px;
-  padding: 8px;
-  border: 2px solid #2b332e;
-  border-radius: 27px;
-  background: #202923;
+  padding: 13px 12px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: url("/brand/android-phone-frame.svg") center/100% 100% no-repeat;
   box-shadow: 0 18px 38px rgba(16, 23, 19, .16);
 }
 
@@ -927,10 +918,10 @@ html.is-document-hidden [data-motion] * {
   z-index: 2;
   top: 13px;
   left: 50%;
-  width: 34px;
-  height: 4px;
-  border-radius: 99px;
-  background: #3b463f;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #202522;
   transform: translateX(-50%);
 }
 
@@ -941,8 +932,8 @@ html.is-document-hidden [data-motion] * {
   align-items: center;
   justify-content: center;
   padding: 24px 13px 14px;
-  border-radius: 19px;
-  background: #f4f6f2;
+  border-radius: 3px;
+  background: transparent;
   text-align: center;
 }
 
@@ -1722,7 +1713,7 @@ html.is-document-hidden [data-motion] * {
   width: 29px;
   height: 29px;
   border-radius: 8px;
-  background: var(--graphite-soft);
+  background: url("/brand/nabda-mark.svg") center/contain no-repeat;
 }
 .docs-brand .brand-mark::before { height: 8px; }
 .docs-brand .brand-mark span { height: 16px; background: #78b99f; }

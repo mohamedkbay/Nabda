@@ -373,6 +373,8 @@ export class DesktopRepository {
     content: string;
     recipients: Array<{ contactId?: string; to: string; consentReference: string }>;
     sendAt: Date;
+    sendUntil?: Date;
+    messagesPerHour?: number;
     maxRecipients?: number;
     now?: Date;
   }): { campaign: CampaignRecord; queued: number; skippedOptOut: number } {
@@ -380,6 +382,10 @@ export class DesktopRepository {
     const maxRecipients = Math.max(1, Math.min(5_000, Math.trunc(input.maxRecipients ?? 5_000)));
     if (input.recipients.length < 1 || input.recipients.length > maxRecipients) throw new Error("Campaign recipient limit exceeded");
     if (input.sendAt.getTime() > now.getTime() + 20 * 24 * 60 * 60 * 1000) throw new Error("Campaigns may be scheduled at most 20 days ahead");
+    const messagesPerHour = Math.trunc(input.messagesPerHour ?? 600);
+    if (messagesPerHour < 1 || messagesPerHour > 600) throw new Error("Messages per hour must be between 1 and 600");
+    if (input.sendUntil && input.sendUntil.getTime() < input.sendAt.getTime()) throw new Error("Campaign end time must be after its start time");
+    if (input.sendUntil && input.sendUntil.getTime() > now.getTime() + 20 * 24 * 60 * 60 * 1000) throw new Error("Campaigns may end at most 20 days ahead");
     const normalized = input.recipients.map((recipient) => ({
       ...recipient,
       to: normalizeDesktopPhone(recipient.to),
@@ -389,6 +395,12 @@ export class DesktopRepository {
     const at = nowIso(now);
     const scheduledAt = nowIso(input.sendAt);
     const content = requiredText(input.content, "Campaign content", 4000);
+    const intervalMs = 3_600_000 / messagesPerHour;
+    const eligibleCount = normalized.filter((recipient) => !this.isOptedOut(recipient.to)).length;
+    const lastScheduledAt = new Date(input.sendAt.getTime() + Math.max(0, eligibleCount - 1) * intervalMs);
+    if (input.sendUntil && lastScheduledAt.getTime() > input.sendUntil.getTime()) {
+      throw new Error("The selected time window is too short for this recipient count and hourly rate");
+    }
     return runTransaction(this.database, () => {
       this.database.db
         .prepare("INSERT INTO campaigns(id, name, content, scheduled_at, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'scheduled', ?, ?)")
@@ -405,13 +417,14 @@ export class DesktopRepository {
           skippedOptOut += 1;
           continue;
         }
+        const recipientScheduledAt = nowIso(new Date(input.sendAt.getTime() + queued * intervalMs));
         this.database.db
           .prepare("INSERT INTO messages(id, contact_id, campaign_id, phone, content, status, scheduled_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?)")
-          .run(messageId, recipient.contactId ?? null, campaignId, recipient.to, content, scheduledAt, at, at);
-        this.addMessageEventStatement().run(randomUUID(), messageId, "queued", JSON.stringify({ campaignId }), at);
+          .run(messageId, recipient.contactId ?? null, campaignId, recipient.to, content, recipientScheduledAt, at, at);
+        this.addMessageEventStatement().run(randomUUID(), messageId, "queued", JSON.stringify({ campaignId, messagesPerHour }), at);
         this.database.db
           .prepare("INSERT INTO queue_jobs(id, message_id, status, attempts, available_at, created_at, updated_at) VALUES (?, ?, 'pending', 0, ?, ?, ?)")
-          .run(randomUUID(), messageId, scheduledAt, at, at);
+          .run(randomUUID(), messageId, recipientScheduledAt, at, at);
         this.database.db
           .prepare("INSERT INTO campaign_recipients(id, campaign_id, contact_id, phone, consent_reference, status, message_id, created_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)")
           .run(randomUUID(), campaignId, recipient.contactId ?? null, recipient.to, recipient.consentReference, messageId, at);

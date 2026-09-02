@@ -80,7 +80,7 @@ export async function startControllerServer(input: {
   const browserSecret = randomBytes(32).toString("base64url");
   const cookie = `nbda_control=${browserSecret}`;
   let lanUrl = `http://${input.lanAddress}:${port}`;
-  const [html, css, script, contactImport, cairo, lucide, qrCode] = await Promise.all([
+  const [html, css, script, contactImport, cairo, lucide, qrCode, brandMark, phoneFrame] = await Promise.all([
     readFile(join(moduleDirectory, "web", "index.html")),
     readFile(join(moduleDirectory, "web", "styles.css")),
     readFile(join(moduleDirectory, "web", "app.js")),
@@ -88,6 +88,8 @@ export async function startControllerServer(input: {
     readFile(join(moduleDirectory, "web", "cairo.woff2")).catch(() => readFile(join(moduleDirectory, "..", "..", "public", "fonts", "cairo-arabic-wght-normal.woff2"))),
     readFile(join(moduleDirectory, "web", "vendor", "lucide.js")).catch(() => readFile(join(moduleDirectory, "..", "renderer", "vendor", "lucide.js"))),
     readFile(join(moduleDirectory, "web", "vendor", "qrcode.js")).catch(() => readFile(join(moduleDirectory, "..", "..", "node_modules", "qrcode-generator", "dist", "qrcode.js"))),
+    readFile(join(moduleDirectory, "web", "nabda-mark.svg")),
+    readFile(join(moduleDirectory, "web", "android-phone-frame.svg")),
   ]);
 
   const server = createServer(async (request, response) => {
@@ -171,6 +173,14 @@ export async function startControllerServer(input: {
       if (path === "/cairo.woff2" && method === "GET") {
         response.writeHead(200, { "content-type": "font/woff2", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
         return response.end(cairo);
+      }
+      if (path === "/nabda-mark.svg" && method === "GET") {
+        response.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+        return response.end(brandMark);
+      }
+      if (path === "/android-phone-frame.svg" && method === "GET") {
+        response.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+        return response.end(phoneFrame);
       }
 
       if (!path.startsWith("/control-api/")) throw new ControllerError(404, "not_found", "Page not found.");

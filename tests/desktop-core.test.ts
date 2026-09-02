@@ -60,6 +60,42 @@ describe("local SQLite data", () => {
     expect(() => repository.createMessage({ to: "+218910000004", content: "x", scheduledAt: new Date(now.getTime() + 21 * 86_400_000), now })).toThrow("20 days");
   });
 
+  it("spreads campaign jobs across the selected window and hourly rate", () => {
+    const { repository } = core();
+    const now = new Date("2026-08-31T10:00:00.000Z");
+    const start = new Date("2026-08-31T11:00:00.000Z");
+    repository.queueCampaign({
+      name: "Scheduled reminders",
+      content: "Expected reminder",
+      recipients: [
+        { to: "+218910000021", consentReference: "booking-1" },
+        { to: "+218910000022", consentReference: "booking-2" },
+        { to: "+218910000023", consentReference: "booking-3" },
+      ],
+      sendAt: start,
+      sendUntil: new Date("2026-08-31T13:00:00.000Z"),
+      messagesPerHour: 2,
+      now,
+    });
+    expect(repository.listMessages().map((message) => message.scheduledAt).sort()).toEqual([
+      "2026-08-31T11:00:00.000Z",
+      "2026-08-31T11:30:00.000Z",
+      "2026-08-31T12:00:00.000Z",
+    ]);
+    expect(() => repository.queueCampaign({
+      name: "Too short",
+      content: "Expected reminder",
+      recipients: [
+        { to: "+218910000031", consentReference: "booking-1" },
+        { to: "+218910000032", consentReference: "booking-2" },
+      ],
+      sendAt: start,
+      sendUntil: new Date("2026-08-31T11:10:00.000Z"),
+      messagesPerHour: 2,
+      now,
+    })).toThrow("too short");
+  });
+
   it("cancels queued messages transactionally", () => {
     const { repository } = core();
     const queued = repository.createMessage({ to: "+218910000005", content: "cancel me" });

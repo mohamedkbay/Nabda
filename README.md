@@ -32,7 +32,7 @@ For a single Windows computer and one Android phone, install **Nabda Controller*
 
 Closing the browser does not stop Nabda. The controller and queue continue in the Windows background. Click the tray icon to reopen the dashboard, enable **Start with Windows** if wanted, or use **Lock carrier sending** for an immediate stop.
 
-The Windows dashboard is restricted to the same computer. Only `/health`, the one-time pairing exchange, and the authenticated `/v1/device/*` phone protocol are reachable from the private LAN. Pairing expires after two minutes and is consumed atomically. Device tokens and message leases are stored only as SHA-256 hashes.
+The Windows dashboard is restricted to the same computer. It can switch between English and Arabic (RTL) and remembers the local choice. Messages and batches share one workspace: choose every eligible contact, filter names by first letter, or select individual people. A batch can enter the queue immediately or be spread across a from/to window at 1-600 messages per hour. Only `/health`, the one-time pairing exchange, and the authenticated `/v1/device/*` phone protocol are reachable from the private LAN. Pairing expires after two minutes and is consumed atomically. Device tokens and message leases are stored only as SHA-256 hashes.
 
 Build the unsigned internal Windows installer locally with:
 

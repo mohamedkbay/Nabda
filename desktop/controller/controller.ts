@@ -195,15 +195,26 @@ export class LocalController {
     if (!oneSmsSegment(content)) throw new ControllerError(422, "single_segment_required", "The phone gateway accepts one SMS segment: 160 GSM characters or 70 Unicode characters.");
     const sendAt = input.send_at ? new Date(requireText(input.send_at, "Schedule", 50)) : new Date();
     if (!Number.isFinite(sendAt.getTime())) throw new ControllerError(422, "validation_error", "Schedule is invalid.");
+    const sendUntil = input.send_until ? new Date(requireText(input.send_until, "End schedule", 50)) : undefined;
+    if (sendUntil && !Number.isFinite(sendUntil.getTime())) throw new ControllerError(422, "validation_error", "End schedule is invalid.");
+    const messagesPerHour = input.messages_per_hour === undefined ? 600 : Number(input.messages_per_hour);
+    if (!Number.isInteger(messagesPerHour) || messagesPerHour < 1 || messagesPerHour > 600) {
+      throw new ControllerError(422, "validation_error", "Messages per hour must be an integer between 1 and 600.");
+    }
     const recipients = ids.map((id) => {
       const contact = this.repository.getContact(id);
       if (!contact) throw new ControllerError(422, "validation_error", "A selected contact no longer exists.");
       if (!contact.consentReference) throw new ControllerError(422, "consent_required", `${contact.name} has no consent reference.`);
       return { contactId: contact.id, to: contact.phone, consentReference: contact.consentReference };
     });
-    return this.repository.queueCampaign({
-      name: requireText(input.name, "Campaign name", 200), content, recipients, sendAt, maxRecipients: MONTHLY_LIMIT,
-    });
+    try {
+      return this.repository.queueCampaign({
+        name: requireText(input.name, "Campaign name", 200), content, recipients, sendAt,
+        ...(sendUntil ? { sendUntil } : {}), messagesPerHour, maxRecipients: MONTHLY_LIMIT,
+      });
+    } catch (error) {
+      throw new ControllerError(422, "validation_error", error instanceof Error ? error.message : "Invalid campaign schedule.");
+    }
   }
 
   cancelMessage(id: string): void {

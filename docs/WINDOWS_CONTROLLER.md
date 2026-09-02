@@ -33,7 +33,7 @@ Android phone + company SIM
 
 The tray opens a URL carrying an unpredictable one-process bootstrap secret. Direct navigation to `http://127.0.0.1:3210` is also accepted only from the same computer and only with an exact loopback Host header. The controller creates an HttpOnly, SameSite=Strict session cookie and immediately redirects to a clean URL. Dashboard and control routes reject non-loopback clients. Mutations also require a custom control header, and the page is served with a strict CSP and frame denial.
 
-The dashboard can manage contacts, CSV/TXT/VCF imports, opt-outs, individual messages, controlled contact campaigns, QR pairing, and the live-sending lock. The contact importer recognizes the reference `Name,Emails,PhoneNumbers` export and separates multiple semicolon-delimited phone numbers.
+The bilingual English/Arabic dashboard can manage contacts, CSV/TXT/VCF imports, opt-outs, individual messages, controlled contact batches, QR pairing, and the live-sending lock. Messages and batches use one screen. Recipients can be selected individually, by browsing a first-letter group, or all at once. A batch can start immediately or use a from/to window with an explicit 1-600 messages-per-hour rate. Each eligible recipient receives a separate `scheduled_at`; a window that is too short is rejected instead of exceeding the selected rate. The contact importer recognizes the reference `Name,Emails,PhoneNumbers` export and separates multiple semicolon-delimited phone numbers.
 
 ## Phone boundary
 
