@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="screen_title">Connect this phone</string>
-    <string name="server_url_label">Server URL</string>
-    <string name="server_url_hint">http://127.0.0.1:3000</string>
-    <string name="device_token_label">Device token</string>
-    <string name="device_token_hint">Paste device token</string>
-    <string name="connect_start">Connect &amp; start</string>
+    <string name="screen_title">Connect in one scan.</string>
+    <string name="pairing_title">Scan the controller QR</string>
+    <string name="pairing_description">Open Device in Nabda Controller on Windows, create a QR code, then scan it here. No keys to copy.</string>
+    <string name="scan_qr">Scan controller QR</string>
+    <string name="paired_controller_title">PAIRED CONTROLLER</string>
+    <string name="controller_not_paired">Not paired yet</string>
+    <string name="connect_start">Start connection</string>
     <string name="stop_agent">Stop agent</string>
     <string name="status_title">Status</string>
     <string name="status_stopped">Not connected</string>
-    <string name="last_activity_title">Last activity</string>
+    <string name="status_pairing">Pairing securely…</string>
     <string name="last_activity_empty">Nothing yet</string>
     <string name="live_consent">I confirm recipients expect these transactional messages.</string>
+    <string name="security_note">Pairing codes expire after two minutes and work once.</string>
     <string name="notification_channel_name">Phone connection</string>
     <string name="notification_title">Nabda phone agent</string>
     <string name="notification_connecting">Connecting to Nabda…</string>

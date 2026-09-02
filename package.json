@@ -51,6 +51,7 @@
     "@types/pg": "^8.0.0",
     "electron": "^44.1.0",
     "electron-builder": "^26.15.3",
+    "qrcode-generator": "^2.0.4",
     "tsx": "^4.0.0",
     "typescript": "^5.9.0",
     "vitest": "^4.0.0"

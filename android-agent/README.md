@@ -1,6 +1,6 @@
 # Nabda Android Agent
 
-A small native Android gateway built with Java, SDK views, `HttpURLConnection`, Android Keystore, and one foreground service. It has no Flutter, React Native, Compose, Retrofit, or local database dependency.
+A small native Android gateway built with Java, SDK views, `HttpURLConnection`, Android Keystore, Google Code Scanner, and one foreground service. It has no Flutter, React Native, Compose, Retrofit, or local database dependency. QR scanning is delegated to Google Play services and does not require camera permission in the app.
 
 ## Two builds
 
@@ -22,7 +22,17 @@ artifacts/Nabda-Agent-Simulation-0.1.0.apk
 artifacts/Nabda-Agent-LAN-0.1.0-debug.apk
 ```
 
-## Same-Wi-Fi setup
+## Windows Controller setup (recommended)
+
+1. Start Nabda Controller on Windows and open **Device**.
+2. Click **Create pairing QR**. The code expires after two minutes and works once.
+3. On Android, tap **Scan controller QR** and scan the screen.
+4. Tap **Start connection**. The device token is returned by the one-time exchange and encrypted with Android Keystore; it is never typed or copied.
+5. For the live build, confirm expected-message use and grant the SMS permission. The Windows carrier lock must also be enabled.
+
+Both devices must remain on the same trusted Wi-Fi. The debug URL policy accepts HTTP only for loopback, the emulator gateway, and RFC1918 private addresses. Release builds require HTTPS.
+
+## API server setup (advanced)
 
 1. Start Nabda with `docker-compose.live.yml`.
 2. Provision a live device token using `npm run db:device-agent` through the same Compose files.
@@ -30,7 +40,7 @@ artifacts/Nabda-Agent-LAN-0.1.0-debug.apk
 4. Enter `http://<computer-private-ip>:3000` and the one-time device token.
 5. Confirm expected-message use, tap **Connect & start**, and grant the SMS permission.
 
-The debug URL policy accepts HTTP only for loopback, the emulator gateway, and RFC1918 private addresses. Release builds require HTTPS.
+The multi-tenant API server currently keeps its administrative token-provisioning flow for server deployments. The QR flow is the preferred zero-copy setup for the local Windows Controller.
 
 ## Pull protocol
 

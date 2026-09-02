@@ -11,11 +11,13 @@ describe("Windows background controller security policy", () => {
     const renderer = await readFile(join(process.cwd(), "desktop/controller/web/app.js"), "utf8");
     expect(html).toContain("Nabda Controller");
     expect(html).toContain('lang="en"');
-    for (const page of ["overview", "messages", "contacts", "campaign", "device"]) expect(html).toContain(`id="${page}"`);
+    for (const page of ["dashboard", "messages", "contacts", "campaigns", "device"]) expect(html).toContain(`id="view-${page}"`);
     expect(css).toContain("button:focus-visible");
     expect(css).toContain("@font-face");
-    expect(renderer).toContain('"x-nabda-control":"1"');
+    expect(renderer).toContain('"x-nabda-control": "1"');
     expect(renderer).toContain("/control-api/campaigns");
+    expect(renderer).toContain("/control-api/pairing");
+    expect(renderer).toContain("/control-api/contacts/import");
     expect(renderer).not.toContain("x-api-key");
     expect(html).not.toContain("httpSMS");
   });
@@ -37,6 +39,7 @@ describe("Windows background controller security policy", () => {
     expect(server).toContain("x-nabda-control");
     expect(server).toContain("frame-ancestors 'none'");
     expect(controller).toContain('hash("device", token)');
+    expect(controller).toContain('hash("pairing", token)');
     expect(controller).toContain("timingSafeEqual");
     expect(controller).toContain("MIN_DISPATCH_INTERVAL_MS = 6_000");
     expect(controller).not.toContain("httpSMS");

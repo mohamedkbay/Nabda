@@ -6,10 +6,21 @@ import { fileURLToPath } from "node:url";
 import { ControllerError, LocalController } from "./controller.js";
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
-const MAX_BODY_BYTES = 128 * 1024;
+const MAX_BODY_BYTES = 512 * 1024;
 
 function loopback(address: string | undefined): boolean {
   return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
+}
+function privateNetwork(address: string | undefined): boolean {
+  if (!address) return false;
+  if (loopback(address)) return true;
+  const normalized = address.startsWith("::ffff:") ? address.slice(7) : address.toLowerCase();
+  if (normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe80:")) return true;
+  const parts = normalized.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+  return parts[0] === 10
+    || (parts[0] === 172 && (parts[1] as number) >= 16 && (parts[1] as number) <= 31)
+    || (parts[0] === 192 && parts[1] === 168);
 }
 function json(response: ServerResponse, status: number, value: unknown, extra: Record<string, string> = {}): void {
   response.writeHead(status, {
@@ -65,11 +76,14 @@ export async function startControllerServer(input: {
   const browserSecret = randomBytes(32).toString("base64url");
   const cookie = `nbda_control=${browserSecret}`;
   let lanUrl = `http://${input.lanAddress}:${port}`;
-  const [html, css, script, cairo] = await Promise.all([
+  const [html, css, script, contactImport, cairo, lucide, qrCode] = await Promise.all([
     readFile(join(moduleDirectory, "web", "index.html")),
     readFile(join(moduleDirectory, "web", "styles.css")),
     readFile(join(moduleDirectory, "web", "app.js")),
+    readFile(join(moduleDirectory, "web", "contact-import.js")),
     readFile(join(moduleDirectory, "web", "cairo.woff2")).catch(() => readFile(join(moduleDirectory, "..", "..", "public", "fonts", "cairo-arabic-wght-normal.woff2"))),
+    readFile(join(moduleDirectory, "web", "vendor", "lucide.js")).catch(() => readFile(join(moduleDirectory, "..", "renderer", "vendor", "lucide.js"))),
+    readFile(join(moduleDirectory, "web", "vendor", "qrcode.js")).catch(() => readFile(join(moduleDirectory, "..", "..", "node_modules", "qrcode-generator", "dist", "qrcode.js"))),
   ]);
 
   const server = createServer(async (request, response) => {
@@ -79,6 +93,11 @@ export async function startControllerServer(input: {
       const method = request.method ?? "GET";
 
       if (path === "/health" && method === "GET") return json(response, 200, { status: "ok", delivery_mode: "android_lan", live_enabled: input.controller.liveEnabled });
+
+      if (path === "/v1/device/pair" && method === "POST") {
+        if (!privateNetwork(request.socket.remoteAddress)) throw new ControllerError(403, "private_network_required", "Pairing is available only on the trusted private network.");
+        return json(response, 201, input.controller.pairDevice(await body(request)));
+      }
 
       if (path.startsWith("/v1/device/")) {
         const token = bearer(request);
@@ -126,6 +145,18 @@ export async function startControllerServer(input: {
         response.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff" });
         return response.end(script);
       }
+      if (path === "/contact-import.js" && method === "GET") {
+        response.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff" });
+        return response.end(contactImport);
+      }
+      if (path === "/vendor/lucide.js" && method === "GET") {
+        response.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+        return response.end(lucide);
+      }
+      if (path === "/vendor/qrcode.js" && method === "GET") {
+        response.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+        return response.end(qrCode);
+      }
       if (path === "/cairo.woff2" && method === "GET") {
         response.writeHead(200, { "content-type": "font/woff2", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
         return response.end(cairo);
@@ -141,7 +172,11 @@ export async function startControllerServer(input: {
       if (path === "/control-api/devices" && method === "POST") {
         const payload = await body(request); return json(response, 201, input.controller.provisionDevice(payload.name));
       }
+      if (path === "/control-api/pairing" && method === "POST") {
+        const payload = await body(request); return json(response, 201, input.controller.createPairing(lanUrl, payload.name));
+      }
       if (path === "/control-api/contacts" && method === "POST") return json(response, 201, input.controller.createContact(await body(request)));
+      if (path === "/control-api/contacts/import" && method === "POST") return json(response, 201, input.controller.importContacts(await body(request)));
       const optOut = path.match(/^\/control-api\/contacts\/([0-9a-f-]{36})\/opt-out$/i);
       if (optOut && method === "POST") {
         const payload = await body(request); input.controller.setOptOut(optOut[1] as string, payload.opted_out === true); return json(response, 200, { ok: true });

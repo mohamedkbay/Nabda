@@ -25,13 +25,14 @@ For a single Windows computer and one Android phone, install **Nabda Controller*
 
 1. Install `Nabda-Controller-0.1.0-Setup-x64.exe`.
 2. Open Nabda from the Start menu. The browser dashboard opens at `http://127.0.0.1:3210` through a protected tray-generated session.
-3. In **Device**, create a device token and copy the displayed LAN URL and one-time token into the Android LAN app.
-4. Type `ENABLE_LIVE_SMS` in the dashboard and approve live sending on Android.
-5. Add contacts, queue one message, or create a controlled contact campaign in the browser.
+3. In **Device**, create a two-minute pairing QR. In Nabda Agent on Android, tap **Scan controller QR**. The code works once and never contains the permanent device key.
+4. Tap **Start connection** on Android. For live SMS, type `ENABLE_LIVE_SMS` in Windows and complete the separate Android confirmation.
+5. Add one contact or import CSV, TXT, or VCF. The importer supports `Name,Emails,PhoneNumbers` and expands semicolon-separated numbers into separate contacts.
+6. Queue one message or create a controlled contact campaign in the browser.
 
 Closing the browser does not stop Nabda. The controller and queue continue in the Windows background. Click the tray icon to reopen the dashboard, enable **Start with Windows** if wanted, or use **Lock carrier sending** for an immediate stop.
 
-The Windows dashboard is restricted to the same computer. Only `/health` and the authenticated `/v1/device/*` phone protocol are reachable from the private LAN. Device tokens and message leases are stored only as SHA-256 hashes.
+The Windows dashboard is restricted to the same computer. Only `/health`, the one-time pairing exchange, and the authenticated `/v1/device/*` phone protocol are reachable from the private LAN. Pairing expires after two minutes and is consumed atomically. Device tokens and message leases are stored only as SHA-256 hashes.
 
 Build the unsigned internal Windows installer locally with:
 

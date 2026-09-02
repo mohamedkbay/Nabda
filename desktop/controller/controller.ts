@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import type { DesktopDatabase } from "../core/database.js";
-import { DesktopRepository } from "../core/repository.js";
+import { DesktopRepository, normalizeDesktopPhone } from "../core/repository.js";
 
 const MONTHLY_LIMIT = 5_000;
 const MIN_DISPATCH_INTERVAL_MS = 6_000;
@@ -39,8 +39,16 @@ export class ControllerError extends Error {
 
 export interface DevicePrincipal { id: string; name: string }
 
+interface PendingPairing {
+  tokenHash: string;
+  expiresAt: number;
+  name: string;
+  serverUrl: string;
+}
+
 export class LocalController {
   readonly repository: DesktopRepository;
+  private pendingPairing: PendingPairing | undefined;
 
   constructor(readonly database: DesktopDatabase) {
     this.repository = new DesktopRepository(database);
@@ -104,6 +112,48 @@ export class LocalController {
     }
   }
 
+  importContacts(input: Record<string, unknown>): { imported: number; duplicates: number; invalid: number; total: number } {
+    if (input.consent_confirmed !== true) throw new ControllerError(422, "consent_required", "Confirm recipient consent before importing.");
+    if (!Array.isArray(input.contacts) || input.contacts.length < 1 || input.contacts.length > 500) {
+      throw new ControllerError(422, "validation_error", "Import between 1 and 500 contacts per batch.");
+    }
+    const consentReference = requireText(input.consent_reference, "Consent reference", 500);
+    const existingPhones = new Set(this.repository.listContacts().map((contact) => contact.phone));
+    const accepted: Array<{ name: string; phone: string }> = [];
+    let duplicates = 0;
+    let invalid = 0;
+    for (const value of input.contacts) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        invalid += 1;
+        continue;
+      }
+      const row = value as Record<string, unknown>;
+      try {
+        const name = requireText(row.name, "Contact name", 200);
+        const phone = normalizeDesktopPhone(requireText(row.phone, "Phone", 32));
+        if (existingPhones.has(phone)) {
+          duplicates += 1;
+          continue;
+        }
+        existingPhones.add(phone);
+        accepted.push({ name, phone });
+      } catch {
+        invalid += 1;
+      }
+    }
+    this.database.db.exec("BEGIN IMMEDIATE");
+    try {
+      for (const contact of accepted) {
+        this.repository.createContact({ ...contact, consentReference });
+      }
+      this.database.db.exec("COMMIT");
+    } catch (error) {
+      this.database.db.exec("ROLLBACK");
+      throw new ControllerError(422, "import_failed", error instanceof Error ? error.message : "Contact import failed.");
+    }
+    return { imported: accepted.length, duplicates, invalid, total: input.contacts.length };
+  }
+
   setOptOut(contactId: string, optedOut: boolean): void {
     const contact = this.repository.getContact(contactId);
     if (!contact) throw new ControllerError(404, "not_found", "Contact not found.");
@@ -159,6 +209,60 @@ export class LocalController {
   cancelMessage(id: string): void {
     if (!this.repository.cancelQueuedMessage(id)) throw new ControllerError(409, "not_cancellable", "Only queued messages can be cancelled.");
     this.database.db.prepare("DELETE FROM device_claims WHERE message_id = ? AND begun_at IS NULL").run(id);
+  }
+
+  createPairing(lanUrl: string, nameValue: unknown): {
+    pairing_uri: string;
+    expires_at: string;
+    device_name: string;
+  } {
+    const serverUrl = requireText(lanUrl, "Server URL", 500).replace(/\/$/, "");
+    const name = typeof nameValue === "string" && nameValue.trim()
+      ? requireText(nameValue, "Device name", 100)
+      : "Company Android";
+    const token = `nbda_pair_${randomBytes(32).toString("base64url")}`;
+    const expiresAt = Date.now() + 2 * 60_000;
+    this.pendingPairing = {
+      tokenHash: hash("pairing", token),
+      expiresAt,
+      name,
+      serverUrl,
+    };
+    const parameters = new URLSearchParams({
+      v: "1",
+      server: serverUrl,
+      token,
+    });
+    return {
+      pairing_uri: `nabda://pair?${parameters.toString()}`,
+      expires_at: new Date(expiresAt).toISOString(),
+      device_name: name,
+    };
+  }
+
+  pairDevice(input: Record<string, unknown>): {
+    device_id: string;
+    device_name: string;
+    device_token: string;
+    server_url: string;
+  } {
+    const token = requireText(input.pairing_token, "Pairing token", 256);
+    const pending = this.pendingPairing;
+    if (!pending || pending.expiresAt <= Date.now()) {
+      this.pendingPairing = undefined;
+      throw new ControllerError(410, "pairing_expired", "This pairing code expired. Create a new QR code in the controller.");
+    }
+    if (!safeEqual(pending.tokenHash, hash("pairing", token))) {
+      throw new ControllerError(401, "invalid_pairing_token", "The pairing code was rejected.");
+    }
+    const provisioned = this.provisionDevice(pending.name);
+    this.pendingPairing = undefined;
+    return {
+      device_id: provisioned.id,
+      device_name: provisioned.name,
+      device_token: provisioned.token,
+      server_url: pending.serverUrl,
+    };
   }
 
   provisionDevice(nameValue: unknown): { id: string; name: string; token: string } {

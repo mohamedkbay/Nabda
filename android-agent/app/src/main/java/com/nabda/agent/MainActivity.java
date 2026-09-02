@@ -5,24 +5,33 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.InputType;
-import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.mlkit.vision.barcode.common.Barcode;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
+
+import org.json.JSONObject;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public final class MainActivity extends Activity {
-    private EditText serverUrlInput;
-    private EditText deviceTokenInput;
     private CheckBox liveConsent;
+    private Button scanButton;
     private Button connectButton;
+    private TextView controllerText;
     private TextView statusText;
     private TextView lastActivityText;
     private SecureSettings secureSettings;
     private AgentStateStore stateStore;
     private TransportGate transportGate;
+    private final ExecutorService pairingExecutor = Executors.newSingleThreadExecutor();
+    private boolean pairing;
     private final Handler refreshHandler = new Handler(Looper.getMainLooper());
     private final Runnable refreshTask = new Runnable() {
         @Override
@@ -39,34 +48,19 @@ public final class MainActivity extends Activity {
 
         secureSettings = new SecureSettings(this);
         stateStore = new AgentStateStore(this);
-        serverUrlInput = findViewById(R.id.serverUrlInput);
-        deviceTokenInput = findViewById(R.id.deviceTokenInput);
         liveConsent = findViewById(R.id.liveConsent);
+        scanButton = findViewById(R.id.scanButton);
         connectButton = findViewById(R.id.connectButton);
+        controllerText = findViewById(R.id.controllerText);
         statusText = findViewById(R.id.statusText);
         lastActivityText = findViewById(R.id.lastActivityText);
         transportGate = new TransportGate(this, liveConsent, stateStore);
-
-        SecureSettings.Credentials existing = secureSettings.loadCredentials();
-        serverUrlInput.setText(existing.serverUrl);
-        deviceTokenInput.setText(existing.deviceToken);
-        deviceTokenInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-
         transportGate.initialize();
 
+        scanButton.setOnClickListener(view -> scanControllerCode());
         connectButton.setOnClickListener(view -> {
-            if (stateStore.snapshot().running) {
-                stopAgent();
-            } else {
-                validateAndStart();
-            }
-        });
-        deviceTokenInput.setOnEditorActionListener((view, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                connectButton.performClick();
-                return true;
-            }
-            return false;
+            if (stateStore.snapshot().running) stopAgent();
+            else validateAndStart();
         });
         refreshState();
     }
@@ -83,27 +77,85 @@ public final class MainActivity extends Activity {
         super.onPause();
     }
 
-    private void validateAndStart() {
-        serverUrlInput.setError(null);
-        deviceTokenInput.setError(null);
+    @Override
+    protected void onDestroy() {
+        pairingExecutor.shutdownNow();
+        super.onDestroy();
+    }
 
+    private void scanControllerCode() {
+        GmsBarcodeScannerOptions options = new GmsBarcodeScannerOptions.Builder()
+                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                .enableAutoZoom()
+                .build();
+        GmsBarcodeScanner scanner = GmsBarcodeScanning.getClient(this, options);
+        scanner.startScan()
+                .addOnSuccessListener(barcode -> {
+                    String raw = barcode.getRawValue();
+                    if (raw == null) {
+                        Toast.makeText(this, "The QR code did not contain pairing details.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    beginPairing(raw);
+                })
+                .addOnFailureListener(error -> Toast.makeText(
+                        this,
+                        "Could not open the QR scanner. Check Google Play services and try again.",
+                        Toast.LENGTH_LONG).show());
+    }
+
+    private void beginPairing(String rawValue) {
+        final PairingPayload payload;
+        try {
+            payload = PairingPayload.parse(rawValue, BuildConfig.DEBUG);
+        } catch (IllegalArgumentException error) {
+            Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show();
+            return;
+        }
+        pairing = true;
+        statusText.setText(R.string.status_pairing);
+        refreshState();
+        pairingExecutor.execute(() -> {
+            try {
+                JSONObject response = ApiClient.pair(payload.serverUrl, payload.pairingToken);
+                String returnedServer = ServerUrlPolicy.normalize(response.optString("server_url"), BuildConfig.DEBUG);
+                String deviceToken = response.optString("device_token");
+                if (!payload.serverUrl.equals(returnedServer)
+                        || !deviceToken.matches("nbda_device_[A-Za-z0-9_-]{40,100}")) {
+                    throw new IllegalArgumentException("The controller returned invalid pairing credentials.");
+                }
+                secureSettings.saveCredentials(payload.serverUrl, deviceToken);
+                runOnUiThread(() -> {
+                    pairing = false;
+                    stateStore.markPaired();
+                    refreshState();
+                    Toast.makeText(this, "Phone paired. Tap Start connection.", Toast.LENGTH_LONG).show();
+                });
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    pairing = false;
+                    refreshState();
+                    String message = error.getMessage();
+                    Toast.makeText(this, message == null ? "Pairing failed. Create a new QR code and try again." : message, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void validateAndStart() {
+        SecureSettings.Credentials credentials = secureSettings.loadCredentials();
+        if (!credentials.isComplete()) {
+            Toast.makeText(this, "Scan the QR code shown in Nabda Controller first.", Toast.LENGTH_LONG).show();
+            return;
+        }
         final String serverUrl;
         try {
-            serverUrl = ServerUrlPolicy.normalize(serverUrlInput.getText().toString(), BuildConfig.DEBUG);
+            serverUrl = ServerUrlPolicy.normalize(credentials.serverUrl, BuildConfig.DEBUG);
         } catch (IllegalArgumentException error) {
-            serverUrlInput.setError(error.getMessage());
-            serverUrlInput.requestFocus();
+            Toast.makeText(this, "The saved controller address is no longer valid. Scan a new QR code.", Toast.LENGTH_LONG).show();
             return;
         }
-
-        String token = deviceTokenInput.getText().toString().trim();
-        if (token.length() < 16 || token.length() > 1024) {
-            deviceTokenInput.setError("Paste the device token from the dashboard.");
-            deviceTokenInput.requestFocus();
-            return;
-        }
-
-        transportGate.confirmThenRun(() -> startAgent(serverUrl, token));
+        transportGate.confirmThenRun(() -> startAgent(serverUrl, credentials.deviceToken));
     }
 
     @Override
@@ -116,8 +168,7 @@ public final class MainActivity extends Activity {
         try {
             secureSettings.saveCredentials(serverUrl, token);
             stateStore.markStarting();
-            Intent intent = new Intent(this, DeviceAgentService.class);
-            startForegroundService(intent);
+            startForegroundService(new Intent(this, DeviceAgentService.class));
             refreshState();
         } catch (Exception error) {
             stateStore.markStopped();
@@ -134,11 +185,13 @@ public final class MainActivity extends Activity {
 
     private void refreshState() {
         AgentStateStore.Snapshot snapshot = stateStore.snapshot();
-        statusText.setText(snapshot.status);
+        SecureSettings.Credentials credentials = secureSettings.loadCredentials();
+        if (!pairing) statusText.setText(snapshot.status);
         lastActivityText.setText(snapshot.lastActivity);
+        controllerText.setText(credentials.isComplete() ? credentials.serverUrl : getString(R.string.controller_not_paired));
         connectButton.setText(snapshot.running ? R.string.stop_agent : R.string.connect_start);
-        serverUrlInput.setEnabled(!snapshot.running);
-        deviceTokenInput.setEnabled(!snapshot.running);
-        liveConsent.setEnabled(!snapshot.running);
+        connectButton.setEnabled(snapshot.running || (credentials.isComplete() && !pairing));
+        scanButton.setEnabled(!snapshot.running && !pairing);
+        liveConsent.setEnabled(!snapshot.running && !pairing);
     }
 }

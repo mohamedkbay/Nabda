@@ -23,6 +23,23 @@ public final class ApiClient {
     }
 
     public JSONObject post(String path, JSONObject request) throws ApiException {
+        return post(path, request, true);
+    }
+
+    public static JSONObject pair(String baseUrl, String pairingToken) throws ApiException {
+        JSONObject request = new JSONObject();
+        try {
+            request.put("pairing_token", pairingToken);
+            request.put("app_version", BuildConfig.VERSION_NAME);
+            request.put("android_version", android.os.Build.VERSION.RELEASE);
+            request.put("simulated", BuildConfig.SIMULATION_ONLY);
+        } catch (JSONException error) {
+            throw new ApiException(0, "Could not prepare the pairing request.", error);
+        }
+        return new ApiClient(baseUrl, "").post("/v1/device/pair", request, false);
+    }
+
+    private JSONObject post(String path, JSONObject request, boolean authenticated) throws ApiException {
         HttpURLConnection connection = null;
         try {
             URL url = new URL(baseUrl + path);
@@ -32,7 +49,9 @@ public final class ApiClient {
             connection.setConnectTimeout(10_000);
             connection.setReadTimeout(15_000);
             connection.setRequestMethod("POST");
-            connection.setRequestProperty("Authorization", "Bearer " + deviceToken);
+            if (authenticated) {
+                connection.setRequestProperty("Authorization", "Bearer " + deviceToken);
+            }
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             connection.setRequestProperty("User-Agent", "NabdaAndroidAgent/" + BuildConfig.VERSION_NAME);
@@ -86,6 +105,9 @@ public final class ApiClient {
     private static String safeError(JSONObject response, int status) {
         JSONObject error = response.optJSONObject("error");
         String code = error == null ? response.optString("code") : error.optString("code");
+        if ("invalid_pairing_token".equals(code) || "pairing_expired".equals(code)) {
+            return "This QR code is no longer valid. Create a new one in the controller.";
+        }
         if (status == 401 || status == 403) {
             return "The device token was rejected.";
         }

@@ -25,6 +25,10 @@ public final class AgentStateStore {
         update(true, "Connecting…", "Starting securely");
     }
 
+    public void markPaired() {
+        update(false, "Paired — ready to start", "Controller QR accepted securely");
+    }
+
     public void markConnected(String activity) {
         update(true, "Connected", activity);
     }

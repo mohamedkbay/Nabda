@@ -19,6 +19,39 @@ afterEach(async () => {
 });
 
 describe("Windows browser controller", () => {
+  it("uses an expiring one-time QR exchange and never places the permanent device key in the QR", () => {
+    const { database, controller } = setup();
+    const pairing = controller.createPairing("http://192.168.1.20:3210", "Front desk phone");
+    const uri = new URL(pairing.pairing_uri);
+    expect(uri.protocol).toBe("nabda:");
+    expect(uri.hostname).toBe("pair");
+    expect(uri.searchParams.get("server")).toBe("http://192.168.1.20:3210");
+    expect(pairing.pairing_uri).not.toContain("nbda_device_");
+
+    const paired = controller.pairDevice({ pairing_token: uri.searchParams.get("token") });
+    expect(paired).toMatchObject({ device_name: "Front desk phone", server_url: "http://192.168.1.20:3210" });
+    expect(paired.device_token).toMatch(/^nbda_device_/);
+    const stored = database.db.prepare("SELECT token_hash FROM controller_devices WHERE id = ?").get(paired.device_id) as { token_hash: string };
+    expect(stored.token_hash).not.toContain(paired.device_token);
+    expect(() => controller.pairDevice({ pairing_token: uri.searchParams.get("token") })).toThrow("expired");
+  });
+
+  it("imports the reference CSV contact shape in safe batches with consent and deduplication", () => {
+    const { controller } = setup();
+    const result = controller.importContacts({
+      contacts: [
+        { name: "Mohamed", phone: "+218918019090" },
+        { name: "Second number", phone: "+218912166969" },
+        { name: "Duplicate", phone: "+218918019090" },
+        { name: "Invalid", phone: "091" },
+      ],
+      consent_reference: "Customer export 2026-09-01",
+      consent_confirmed: true,
+    });
+    expect(result).toEqual({ imported: 2, duplicates: 1, invalid: 1, total: 4 });
+    expect(controller.getDashboard("http://192.168.1.20:3210").counts.contacts).toBe(2);
+  });
+
   it("stores only a hashed device token and completes the one-message Android lease flow", () => {
     const { database, controller } = setup();
     controller.createContact({
@@ -88,5 +121,21 @@ describe("Windows browser controller", () => {
     const state = await fetch(`${base}/control-api/state`, { headers: { cookie: cookie as string } });
     expect(state.status).toBe(200);
     await expect(state.json()).resolves.toMatchObject({ system: { lan_url: `http://192.168.1.20:${server.port}` } });
+
+    const pairingResponse = await fetch(`${base}/control-api/pairing`, {
+      method: "POST",
+      headers: { cookie: cookie as string, "content-type": "application/json", "x-nabda-control": "1" },
+      body: JSON.stringify({ name: "QR phone" }),
+    });
+    expect(pairingResponse.status).toBe(201);
+    const pairing = await pairingResponse.json() as { pairing_uri: string };
+    const pairingUri = new URL(pairing.pairing_uri);
+    const paired = await fetch(`${base}/v1/device/pair`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pairing_token: pairingUri.searchParams.get("token") }),
+    });
+    expect(paired.status).toBe(201);
+    await expect(paired.json()).resolves.toMatchObject({ device_name: "QR phone" });
   });
 });
