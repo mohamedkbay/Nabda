@@ -11,7 +11,7 @@ describe("Windows background controller security policy", () => {
     const renderer = await readFile(join(process.cwd(), "desktop/controller/web/app.js"), "utf8");
     expect(html).toContain("Nabda Controller");
     expect(html).toContain('lang="en"');
-    for (const page of ["dashboard", "messages", "contacts", "device"]) expect(html).toContain(`id="view-${page}"`);
+    for (const page of ["dashboard", "messages", "history", "contacts", "device"]) expect(html).toContain(`id="view-${page}"`);
     expect(html).not.toContain('id="view-campaigns"');
     expect(html).toContain('data-language="ar"');
     expect(html).toContain('name="send_until"');
@@ -19,6 +19,8 @@ describe("Windows background controller security policy", () => {
     expect(html).toContain('id="quick-save-contact"');
     expect(html).toContain('id="message-history-search"');
     expect(html).toContain('id="message-history-status"');
+    expect(html).toContain('id="history-queued-count"');
+    expect(html).toContain('aria-label="Daily usage"');
     expect(css).toContain("button:focus-visible");
     expect(css).toContain("@font-face");
     expect(renderer).toContain('"x-nabda-control": "1"');

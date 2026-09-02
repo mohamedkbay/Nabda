@@ -20,6 +20,7 @@
     <nav aria-label="Main navigation">
       <button class="nav-item active" data-view="dashboard"><i data-lucide="house"></i><span>Overview</span></button>
       <button class="nav-item" data-view="messages"><i data-lucide="message-square-text"></i><span>Messages</span></button>
+      <button class="nav-item" data-view="history"><i data-lucide="list-checks"></i><span>History</span></button>
       <button class="nav-item" data-view="contacts"><i data-lucide="users-round"></i><span>Contacts</span></button>
       <button class="nav-item" data-view="device"><i data-lucide="smartphone"></i><span>Device</span></button>
     </nav>
@@ -83,12 +84,12 @@
             <article class="card dashboard-activity compact-activity">
               <div class="card-heading"><div><p class="section-kicker">RECENT</p><h2>Latest messages</h2></div><button class="icon-button" type="button" data-refresh aria-label="Refresh"><i data-lucide="refresh-cw"></i></button></div>
               <div class="activity-list" id="dashboard-activity"></div>
-              <button class="text-button" type="button" data-view-target="messages" data-scroll-target="message-history">Open message history <i data-lucide="arrow-right"></i></button>
+              <button class="text-button" type="button" data-view-target="history">Open message history <i data-lucide="arrow-right"></i></button>
             </article>
           </aside>
         </div>
 
-        <div class="overview-usage" aria-label="Monthly usage"><span><b id="used-count">0</b> used this month</span><span><b id="usage-left">5,000</b> available</span><div class="usage-bar"><i id="usage-meter"></i></div></div>
+        <div class="overview-usage" aria-label="Daily usage"><span><b id="used-count">0</b> used today</span><span><b id="usage-left">10,000</b> available</span><div class="usage-bar"><i id="usage-meter"></i></div></div>
         <div id="quick-contacts" hidden></div>
       </div>
     </section>
@@ -132,11 +133,20 @@
           <article class="card panel-card quiet-card"><i data-lucide="shield-alert"></i><h3>No spam automation</h3><p>Nabda does not remove carrier rules or recipient consent requirements. Stop requests are enforced before dispatch.</p></article>
         </aside>
       </div>
+    </section>
+
+    <section class="view" id="view-history">
+      <div class="history-intro"><div><p class="section-kicker">QUEUE & DELIVERY</p><h2>Review every message in one place.</h2><p>See what is waiting, moving, sent, or needs attention.</p></div><span class="count-pill" id="message-history-count">0</span></div>
+      <div class="history-summary" aria-label="Message status summary">
+        <button type="button" data-history-filter="queued"><span class="history-dot queued"></span><span><strong id="history-queued-count">0</strong><small>Waiting in queue</small></span></button>
+        <button type="button" data-history-filter="processing"><span class="history-dot processing"></span><span><strong id="history-processing-count">0</strong><small>Sending now</small></span></button>
+        <button type="button" data-history-filter="successful"><span class="history-dot sent"></span><span><strong id="history-sent-count">0</strong><small>Sent or delivered</small></span></button>
+        <button type="button" data-history-filter="review"><span class="history-dot failed"></span><span><strong id="history-review-count">0</strong><small>Needs review</small></span></button>
+      </div>
       <article class="card panel-card message-history-card" id="message-history">
-        <div class="card-heading history-heading"><div><p class="section-kicker">MESSAGE HISTORY</p><h2>Message history</h2></div><span class="count-pill" id="message-history-count">0</span></div>
         <div class="history-tools">
           <label class="search-box"><i data-lucide="search"></i><input id="message-history-search" placeholder="Search name, number, or message" /></label>
-          <label class="history-filter">Status<select id="message-history-status"><option value="all">All statuses</option><option value="queued">Queued</option><option value="processing">Processing</option><option value="sent">Sent</option><option value="delivered">Delivered</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option><option value="expired">Expired</option></select></label>
+          <label class="history-filter">Status<select id="message-history-status"><option value="all">All statuses</option><option value="queued">Queued</option><option value="processing">Processing</option><option value="successful">Sent or delivered</option><option value="review">Needs review</option><option value="sent">Sent</option><option value="delivered">Delivered</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option><option value="expired">Expired</option></select></label>
         </div>
         <p class="muted-note history-note">Queued messages can be cancelled before the phone begins.</p>
         <div class="table-wrap"><table><thead><tr><th>Recipient</th><th>Message</th><th>Status</th><th>Scheduled</th><th>Created</th><th></th></tr></thead><tbody id="messages-table"></tbody></table></div>

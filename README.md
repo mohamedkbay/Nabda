@@ -2,7 +2,7 @@
 
 Nabda is a self-hosted, multi-tenant messaging API. A company connects its own Android phone and SIM, queues expected service messages through an API, and lets the phone send them while it is connected to the same trusted Wi-Fi network.
 
-The platform is free and the local plan accepts up to **5,000 message operations per month**. SIM credit, carrier fees, phones, and infrastructure remain the operator's responsibility.
+The platform is free. The standalone Windows Controller accepts up to **10,000 message operations per local calendar day**; the multi-tenant API keeps its separately documented plan quota. SIM credit, carrier fees, phones, and infrastructure remain the operator's responsibility.
 
 ## What is included
 
@@ -60,11 +60,11 @@ Android phone on the same Wi-Fi
 
 The phone never downloads the whole campaign. It claims one message, asks the server for final send authorization, sends it through Android, reports the result, and immediately requests the next item. If Wi-Fi disappears, the phone waits and resumes automatically.
 
-## Current local limits
+## Current Windows Controller limits
 
 | Limit | Value |
 | --- | ---: |
-| Monthly accepted messages | 5,000 |
+| Daily accepted messages | 10,000 |
 | Dispatch rate | 10 messages/minute |
 | Active contacts | 10,000 |
 | Android devices | 1 per organization |
@@ -72,7 +72,7 @@ The phone never downloads the whole campaign. It claims one message, asks the se
 | Webhooks | 2 per organization |
 | Sensitive-data retention | 30 days |
 
-At 10 messages per minute, 4,000 messages take about 6 hours 40 minutes and 5,000 take about 8 hours 20 minutes. The rate protects the phone, SIM, and queue. Change it only after confirming the permitted carrier rate.
+At 10 messages per minute, 10,000 messages take about 16 hours 40 minutes. The daily counter resets at the Windows computer's local midnight. The dispatch rate protects the phone, SIM, and queue and remains subject to carrier rules.
 
 ## Docker/API deployment requirements
 

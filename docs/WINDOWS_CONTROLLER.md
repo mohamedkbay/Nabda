@@ -25,7 +25,7 @@ Android phone + company SIM
 - Browser address: `http://127.0.0.1:3210`
 - Phone address: `http://<private-ip>:3210`
 - Default live state: locked
-- Monthly limit: 5,000 accepted messages
+- Daily limit: 10,000 accepted messages, reset at the computer's local midnight
 - Dispatch spacing: six seconds, or at most 10 per minute
 - Active phone: one; completing a new QR pairing revokes the previous phone
 

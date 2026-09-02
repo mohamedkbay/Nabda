@@ -81,7 +81,9 @@ describe("Windows browser controller", () => {
     const saved = controller.repository.listContacts().find((item) => item.name === "Saved from quick send");
     expect(saved).toMatchObject({ phone: "+218923456789", consentReference: null });
     expect(message.contactId).toBe(saved?.id);
-    expect(controller.getDashboard("http://192.168.1.20:3210").messages[0]).toMatchObject({
+    const dashboard = controller.getDashboard("http://192.168.1.20:3210");
+    expect(dashboard.system).toMatchObject({ daily_limit: 10_000, daily_used: 1, rate_per_minute: 10 });
+    expect(dashboard.messages[0]).toMatchObject({
       contact_id: saved?.id,
       to: "+218923456789",
     });

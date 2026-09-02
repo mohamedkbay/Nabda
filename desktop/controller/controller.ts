@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypt
 import type { DesktopDatabase } from "../core/database.js";
 import { DesktopRepository, normalizeDesktopPhone } from "../core/repository.js";
 
-const MONTHLY_LIMIT = 5_000;
+const DAILY_LIMIT = 10_000;
 const MIN_DISPATCH_INTERVAL_MS = 6_000;
 const LEASE_MS = 60_000;
 const GSM_BASIC = new Set(Array.from("@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ`¿abcdefghijklmnopqrstuvwxyzäöñüà"));
@@ -10,6 +10,11 @@ const GSM_BASIC = new Set(Array.from("@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩ�
 type SqlRow = Record<string, string | number | bigint | null>;
 
 function iso(date = new Date()): string { return date.toISOString(); }
+function localDayStartIso(date = new Date()): string {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  return start.toISOString();
+}
 function hash(scope: string, value: string): string {
   return createHash("sha256").update(`${scope}:${value}`, "utf8").digest("hex");
 }
@@ -72,11 +77,9 @@ export class LocalController {
       SELECT id, name, status, last_seen_at, app_version, android_version, created_at
       FROM controller_devices WHERE status = 'active' ORDER BY created_at DESC LIMIT 1
     `).get() as SqlRow | undefined;
-    const monthStart = new Date();
-    monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
-    const usage = Number((this.database.db.prepare("SELECT COUNT(*) count FROM messages WHERE created_at >= ?").get(monthStart.toISOString()) as SqlRow | undefined)?.count ?? 0);
+    const usage = Number((this.database.db.prepare("SELECT COUNT(*) count FROM messages WHERE created_at >= ?").get(localDayStartIso()) as SqlRow | undefined)?.count ?? 0);
     return {
-      system: { status: "running", lan_url: lanUrl, live_enabled: this.liveEnabled, monthly_limit: MONTHLY_LIMIT, monthly_used: usage, rate_per_minute: 10 },
+      system: { status: "running", lan_url: lanUrl, live_enabled: this.liveEnabled, daily_limit: DAILY_LIMIT, daily_used: usage, rate_per_minute: 10 },
       device: device ? {
         id: String(device.id), name: String(device.name), status: String(device.status),
         last_seen_at: device.last_seen_at, app_version: device.app_version, android_version: device.android_version,
@@ -175,7 +178,7 @@ export class LocalController {
 
   createMessage(input: Record<string, unknown>) {
     if (input.consent_confirmed !== true) throw new ControllerError(422, "consent_required", "Confirm recipient consent before queueing.");
-    this.assertMonthlyCapacity(1);
+    this.assertDailyCapacity(1);
     const content = requireText(input.content, "Message", 160);
     if (!oneSmsSegment(content)) throw new ControllerError(422, "single_segment_required", "The phone gateway accepts one SMS segment: 160 GSM characters or 70 Unicode characters.");
     const sendAt = input.send_at ? new Date(requireText(input.send_at, "Schedule", 50)) : undefined;
@@ -210,8 +213,8 @@ export class LocalController {
     if (input.consent_confirmed !== true) throw new ControllerError(422, "consent_required", "Confirm recipient consent before queueing.");
     if (!Array.isArray(input.contact_ids)) throw new ControllerError(422, "validation_error", "Select at least one contact.");
     const ids = [...new Set(input.contact_ids.filter((id): id is string => typeof id === "string"))];
-    if (ids.length < 1 || ids.length > MONTHLY_LIMIT) throw new ControllerError(422, "validation_error", "Campaign size is invalid.");
-    this.assertMonthlyCapacity(ids.length);
+    if (ids.length < 1 || ids.length > DAILY_LIMIT) throw new ControllerError(422, "validation_error", "Campaign size is invalid.");
+    this.assertDailyCapacity(ids.length);
     const content = requireText(input.content, "Message", 160);
     if (!oneSmsSegment(content)) throw new ControllerError(422, "single_segment_required", "The phone gateway accepts one SMS segment: 160 GSM characters or 70 Unicode characters.");
     const sendAt = input.send_at ? new Date(requireText(input.send_at, "Schedule", 50)) : new Date();
@@ -231,7 +234,7 @@ export class LocalController {
     try {
       return this.repository.queueCampaign({
         name: requireText(input.name, "Campaign name", 200), content, recipients, sendAt,
-        ...(sendUntil ? { sendUntil } : {}), messagesPerHour, maxRecipients: MONTHLY_LIMIT,
+        ...(sendUntil ? { sendUntil } : {}), messagesPerHour, maxRecipients: DAILY_LIMIT,
       });
     } catch (error) {
       throw new ControllerError(422, "validation_error", error instanceof Error ? error.message : "Invalid campaign schedule.");
@@ -446,10 +449,9 @@ export class LocalController {
     return input.simulated;
   }
 
-  private assertMonthlyCapacity(incoming: number): void {
-    const start = new Date(); start.setUTCDate(1); start.setUTCHours(0, 0, 0, 0);
-    const used = Number((this.database.db.prepare("SELECT COUNT(*) count FROM messages WHERE created_at >= ?").get(start.toISOString()) as SqlRow | undefined)?.count ?? 0);
-    if (used + incoming > MONTHLY_LIMIT) throw new ControllerError(429, "monthly_limit_reached", "The 5,000-message monthly limit would be exceeded.");
+  private assertDailyCapacity(incoming: number): void {
+    const used = Number((this.database.db.prepare("SELECT COUNT(*) count FROM messages WHERE created_at >= ?").get(localDayStartIso()) as SqlRow | undefined)?.count ?? 0);
+    if (used + incoming > DAILY_LIMIT) throw new ControllerError(429, "daily_limit_reached", "The 10,000-message daily limit would be exceeded.");
   }
 
   private assertLease(row: SqlRow | undefined, rawLease: string, allowExpiredAfterBegin = false): void {

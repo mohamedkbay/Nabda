@@ -3,18 +3,18 @@ import { CONTACT_FILE_MAX_BYTES, CONTACT_IMPORT_BATCH_SIZE, contactsFromFile } f
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const headers = { "content-type": "application/json", "x-nabda-control": "1" };
-const pageTitles = { dashboard: "Overview", messages: "Messages", contacts: "Contacts", device: "Device" };
+const pageTitles = { dashboard: "Overview", messages: "Messages", history: "History", contacts: "Contacts", device: "Device" };
 const translations = {
-  "LOCAL CONTROLLER": "وحدة التحكم المحلية", "Main navigation": "التنقل الرئيسي", Overview: "نظرة عامة", Messages: "الرسائل", Contacts: "جهات الاتصال", Campaigns: "الحملات", Device: "الجهاز", Language: "اللغة",
+  "LOCAL CONTROLLER": "وحدة التحكم المحلية", "Main navigation": "التنقل الرئيسي", Overview: "نظرة عامة", Messages: "الرسائل", History: "السجل", Contacts: "جهات الاتصال", Campaigns: "الحملات", Device: "الجهاز", Language: "اللغة",
   "Starting controller": "جارٍ تشغيل وحدة التحكم", "Local data stays on this computer": "تبقى البيانات المحلية على هذا الكمبيوتر", "NABDA LOCAL WORKSPACE": "مساحة نبضة المحلية", Refresh: "تحديث",
   "THIS MONTH": "هذا الشهر", "Message center": "مركز الرسائل", "messages added to your queue": "رسالة أضيفت إلى الطابور", "available this month": "متاحة هذا الشهر", Waiting: "قيد الانتظار", Sent: "مُرسلة", "Needs review": "تحتاج مراجعة",
-  "NABDA CONTROLLER": "وحدة تحكم نبضة", "Your messages, at a glance.": "رسائلك في نظرة واحدة.", "Send one message, check the queue, or open your connected phone.": "أرسل رسالة، راقب الطابور، أو افتح إعدادات هاتفك المتصل.", "Phone settings": "إعدادات الهاتف", "Workspace summary": "ملخص مساحة العمل", "PHONE": "الهاتف", "Sending device": "جهاز الإرسال", "Last heartbeat:": "آخر اتصال:", "Open phone settings": "فتح إعدادات الهاتف", "RECENT": "الأخيرة", "Latest messages": "أحدث الرسائل", "used this month": "مستخدمة هذا الشهر", available: "متاحة",
+  "NABDA CONTROLLER": "وحدة تحكم نبضة", "Your messages, at a glance.": "رسائلك في نظرة واحدة.", "Send one message, check the queue, or open your connected phone.": "أرسل رسالة، راقب الطابور، أو افتح إعدادات هاتفك المتصل.", "Phone settings": "إعدادات الهاتف", "Workspace summary": "ملخص مساحة العمل", "PHONE": "الهاتف", "Sending device": "جهاز الإرسال", "Last heartbeat:": "آخر اتصال:", "Open phone settings": "فتح إعدادات الهاتف", "RECENT": "الأخيرة", "Latest messages": "أحدث الرسائل", "used today": "مستخدمة اليوم", available: "متاحة",
   "QUICK SEND": "إرسال سريع", "New message": "رسالة جديدة", "1 at a time": "رسالة واحدة كل مرة", Recipient: "المستلم", "Enter a number manually": "أدخل رقمًا يدويًا", "Phone number": "رقم الهاتف", Message: "الرسالة", "Write an expected transactional message…": "اكتب رسالة معاملات متوقعة…", "Single SMS segment": "مقطع SMS واحد", "Send time": "وقت الإرسال", "I confirm this recipient expects this message.": "أؤكد أن هذا المستلم يتوقع هذه الرسالة.", "Add to queue": "إضافة إلى الطابور",
   "+218 is optional for Libyan numbers.": "يمكن كتابة الرقم الليبي مع +218 أو بدونه.", "Save this number to contacts": "احفظ هذا الرقم في جهات الاتصال", "Contact name": "اسم جهة الاتصال", "Name for next time": "اسم يظهر في المرة القادمة",
   "ANDROID ROUTE": "مسار أندرويد", "Your sending phone": "هاتف الإرسال", "Not paired": "غير مقترن", "Waiting for QR pairing": "بانتظار الاقتران عبر QR", Controller: "وحدة التحكم", "Last heartbeat": "آخر اتصال", "Carrier sending": "إرسال عبر الشبكة", Locked: "مقفل", Enabled: "مفعّل", "Connect with QR": "الربط عبر QR",
   "The phone is connected, but live SMS is locked. Open Device and enable it only when you are ready to send.": "الهاتف متصل، لكن إرسال SMS الحقيقي مقفل. افتح الجهاز وفعّله فقط عندما تكون مستعدًا للإرسال.",
   "LIVE QUEUE": "الطابور المباشر", "Recent activity": "النشاط الأخير", "Open message history": "فتح سجل الرسائل", RECIPIENTS: "المستلمون", "Contact book": "دليل جهات الاتصال", "Import or add contacts": "استيراد أو إضافة جهات اتصال", "DELIVERY GUARD": "حماية التسليم", "Safety stays on": "الحماية تبقى مفعّلة", "Opt-outs checked before every claim": "تُفحص قائمة الإيقاف قبل كل رسالة", "Phone receives one message only": "يستلم الهاتف رسالة واحدة فقط", "Six-second dispatch fence": "فاصل أمان ست ثوانٍ", "No blind retry after an uncertain send": "لا إعادة عمياء بعد إرسال غير مؤكد", "Designed for expected transactional messages on a trusted private network.": "مصمم لرسائل المعاملات المتوقعة على شبكة خاصة موثوقة.",
-  "QUEUE & HISTORY": "الطابور والسجل", "MESSAGE HISTORY": "سجل الرسائل", "Message history": "سجل الرسائل", "All recent messages": "كل الرسائل الأخيرة", "Queued messages can be cancelled before the phone begins.": "يمكن إلغاء الرسائل قبل أن يبدأ الهاتف بإرسالها.", "Search name, number, or message": "ابحث بالاسم أو الرقم أو نص الرسالة", "All statuses": "كل الحالات", Queued: "في الطابور", Processing: "قيد المعالجة", Delivered: "تم التسليم", Failed: "فشلت", Cancelled: "ملغاة", Expired: "منتهية", Status: "الحالة", Scheduled: "موعد الإرسال", Created: "تاريخ الإنشاء", "No messages yet": "لا توجد رسائل بعد", "No messages match these filters.": "لا توجد رسائل مطابقة لهذا البحث.", "Use Quick send on Overview to add the first one.": "استخدم الإرسال السريع لإضافة أول رسالة.", Cancel: "إلغاء",
+  "QUEUE & HISTORY": "الطابور والسجل", "QUEUE & DELIVERY": "الطابور والتسليم", "MESSAGE HISTORY": "سجل الرسائل", "Message history": "سجل الرسائل", "Review every message in one place.": "راجع كل رسالة في مكان واحد.", "See what is waiting, moving, sent, or needs attention.": "شاهد ما ينتظر أو يُرسل أو وصل أو يحتاج مراجعة.", "Message status summary": "ملخص حالات الرسائل", "Waiting in queue": "في انتظار الإرسال", "Sending now": "تُرسل الآن", "Sent or delivered": "مُرسلة أو وصلت", "All recent messages": "كل الرسائل الأخيرة", "Queued messages can be cancelled before the phone begins.": "يمكن إلغاء الرسائل قبل أن يبدأ الهاتف بإرسالها.", "Search name, number, or message": "ابحث بالاسم أو الرقم أو نص الرسالة", "All statuses": "كل الحالات", Queued: "في الطابور", Processing: "قيد المعالجة", Delivered: "تم التسليم", Failed: "فشلت", Cancelled: "ملغاة", Expired: "منتهية", Status: "الحالة", Scheduled: "موعد الإرسال", Created: "تاريخ الإنشاء", "No messages yet": "لا توجد رسائل بعد", "No messages match these filters.": "لا توجد رسائل مطابقة لهذا البحث.", "Use Quick send on Overview to add the first one.": "استخدم الإرسال السريع لإضافة أول رسالة.", Cancel: "إلغاء",
   "ONE PERSON": "شخص واحد", "Add contact": "إضافة جهة اتصال", Name: "الاسم", Phone: "الهاتف", "Consent reference": "مرجع الموافقة", "Contract, ticket, booking…": "عقد أو تذكرة أو حجز…", "Store a consent reference for this contact": "احفظ مرجع موافقة لهذه الجهة", "You can save a contact without consent. Sending still requires confirmation.": "يمكنك حفظ جهة الاتصال بدون موافقة؛ الإرسال سيظل يتطلب تأكيدًا.", "Save contact": "حفظ جهة الاتصال", "Import a contact list": "استيراد قائمة جهات اتصال", "Choose a contact file": "اختر ملف جهات اتصال", "Up to 15 MB. Nothing is sent until you confirm.": "حتى 15 MB. لن يُرسل شيء قبل تأكيدك.", "No file selected.": "لم يتم اختيار ملف.", "Shared consent reference": "مرجع الموافقة المشترك", "Source or agreement for this list": "مصدر أو اتفاق هذه القائمة", "Every imported person expects these messages.": "كل شخص مستورد يتوقع هذه الرسائل.", "Import contacts": "استيراد جهات الاتصال", "SAVED LOCALLY": "محفوظة محليًا", "All contacts": "كل جهات الاتصال", "Search by name or number": "ابحث بالاسم أو الرقم", State: "الحالة", "Needs consent": "بحاجة لموافقة", "No contacts saved": "لا توجد جهات اتصال محفوظة", "Add one or import your reference CSV file.": "أضف جهة اتصال أو استورد ملف CSV.", Restore: "استعادة", Stop: "إيقاف",
   "Compatible with": "متوافق مع", "Multiple numbers separated by semicolons become separate contacts.": "تتحول الأرقام المتعددة المفصولة بفاصلة منقوطة إلى جهات اتصال مستقلة.",
   "CONTROLLED BATCH": "دفعة مضبوطة", "Create campaign": "إنشاء حملة", "One-by-one dispatch": "إرسال واحدة تلو الأخرى", "Campaign name": "اسم الحملة", "Appointment reminders": "تذكيرات المواعيد", "Write one message for the selected contacts…": "اكتب رسالة واحدة لجهات الاتصال المحددة…", "Start time": "وقت البدء", "Expected recipients": "المستلمون المتوقعون", "Save contacts first.": "احفظ جهات الاتصال أولًا.", "Every selected recipient expects this transactional message.": "كل مستلم محدد يتوقع رسالة المعاملات هذه.", "Add campaign to queue": "إضافة الحملة إلى الطابور", "HOW IT MOVES": "كيف تتحرك", "Computer holds the campaign": "الكمبيوتر يحتفظ بالحملة", Validate: "تحقق", "Opt-outs and consent references are checked.": "تُفحص قوائم الإيقاف ومراجع الموافقة.", Queue: "الطابور", "Every recipient gets an individual local job.": "يحصل كل مستلم على مهمة محلية مستقلة.", Claim: "الاستلام", "The phone receives only the next eligible SMS.": "يستلم الهاتف رسالة SMS التالية المؤهلة فقط.", "No spam automation": "لا أتمتة للرسائل المزعجة", "Nabda does not remove carrier rules or recipient consent requirements. Stop requests are enforced before dispatch.": "لا تلغي نبضة قواعد شركة الاتصالات أو متطلبات موافقة المستلم. تُنفذ طلبات الإيقاف قبل الإرسال.",
@@ -144,20 +144,30 @@ function renderContactsTable() {
 
 function renderMessageHistory() {
   if (!state) return;
+  $("#history-queued-count").textContent = number(state.messages.filter((message) => message.status === "queued").length);
+  $("#history-processing-count").textContent = number(state.messages.filter((message) => message.status === "processing").length);
+  $("#history-sent-count").textContent = number(state.messages.filter((message) => ["sent", "delivered"].includes(message.status)).length);
+  $("#history-review-count").textContent = number(state.messages.filter((message) => ["failed", "expired"].includes(message.status)).length);
   const query = $("#message-history-search").value.trim().toLowerCase();
   const selectedStatus = $("#message-history-status").value;
   const contacts = new Map(state.contacts.map((contact) => [contact.id, contact]));
   const messages = state.messages.filter((message) => {
     const contact = contacts.get(message.contact_id);
     const searchable = `${contact?.name || ""} ${message.to} ${message.content}`.toLowerCase();
-    return (selectedStatus === "all" || message.status === selectedStatus) && (!query || searchable.includes(query));
+    const matchesStatus = selectedStatus === "all"
+      || message.status === selectedStatus
+      || (selectedStatus === "successful" && ["sent", "delivered"].includes(message.status))
+      || (selectedStatus === "review" && ["failed", "expired"].includes(message.status));
+    return matchesStatus && (!query || searchable.includes(query));
   });
   $("#messages-table").innerHTML = messages.map((message) => {
     const contact = contacts.get(message.contact_id);
     const recipient = contact
       ? `<span class="message-recipient"><strong>${escapeHtml(contact.name)}</strong><small>${escapeHtml(message.to)}</small></span>`
       : escapeHtml(message.to);
-    return `<tr><td>${recipient}</td><td>${escapeHtml(message.content.length > 80 ? `${message.content.slice(0, 77)}…` : message.content)}</td><td>${status(message.status)}</td><td>${date(message.scheduled_at)}</td><td>${date(message.created_at)}</td><td>${message.status === "queued" ? `<button class="table-action" data-cancel="${message.id}">${t("Cancel")}</button>` : ""}</td></tr>`;
+    const content = escapeHtml(message.content.length > 80 ? `${message.content.slice(0, 77)}…` : message.content);
+    const detail = message.failure_reason ? `<small class="message-failure">${escapeHtml(message.failure_reason)}</small>` : "";
+    return `<tr><td>${recipient}</td><td><span class="message-copy">${content}${detail}</span></td><td>${status(message.status)}</td><td>${date(message.scheduled_at)}</td><td>${date(message.created_at)}</td><td>${message.status === "queued" ? `<button class="table-action" data-cancel="${message.id}">${t("Cancel")}</button>` : ""}</td></tr>`;
   }).join("");
   $("#message-history-count").textContent = number(messages.length);
   $("#messages-empty").hidden = messages.length > 0;
@@ -221,9 +231,9 @@ function render() {
     || document.activeElement === $("#live-confirmation")
     || $("#live-confirmation").value.length > 0;
   if (!editingLiveSettings) $("#live-checkbox").checked = system.live_enabled;
-  $("#used-count").textContent = number(system.monthly_used);
-  $("#usage-left").textContent = number(Math.max(0, system.monthly_limit - system.monthly_used));
-  $("#usage-meter").style.width = `${Math.min(100, system.monthly_used / system.monthly_limit * 100)}%`;
+  $("#used-count").textContent = number(system.daily_used);
+  $("#usage-left").textContent = number(Math.max(0, system.daily_limit - system.daily_used));
+  $("#usage-meter").style.width = `${Math.min(100, system.daily_used / system.daily_limit * 100)}%`;
   $("#queued-count").textContent = number(counts.queued);
   $("#sent-count").textContent = number(counts.sent);
   $("#failed-count").textContent = number(counts.failed);
@@ -467,6 +477,11 @@ document.addEventListener("click", async (event) => {
       selectedCampaignContacts.clear();
     }
     renderRecipientPicker();
+    return;
+  }
+  if (target.dataset.historyFilter) {
+    $("#message-history-status").value = target.dataset.historyFilter;
+    renderMessageHistory();
     return;
   }
   if (target.dataset.view) return showView(target.dataset.view);
