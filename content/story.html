@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Nabda — The story of a text</title>
+  <meta name="description" content="An illustrated guide to Nabda: a free SMS API powered by your own Android phone and SIM. Follow a request, the phone's local queue, and the result.">
+  <meta property="og:title" content="Nabda — The story of a text">
+  <meta property="og:description" content="A phone, a SIM, and a little API. Here's how they work together.">
+  <meta property="og:image" content="https://nabda.example.invalid/illustrations/nabda-workshop-cutout.webp">
+  <link rel="canonical" href="https://nabda.example.invalid/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/cairo-regular.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="/story/style.css">
+</head>
+<body>
+<main class="storybook">
+  <section class="cover" id="idea" aria-labelledby="book-title">
+    <h1 id="book-title">Nabda<span>An SMS API.<br>Your phone does the sending.</span></h1>
+    <p class="cover-intro">You write a little code. An Android phone sends the text through its own SIM. Here's how the pieces fit together.</p>
+    <figure class="cover-drawing">
+      <img src="/illustrations/nabda-workshop-cutout.webp" width="1774" height="887" alt="A laptop passes a request through a small cloud to an Android phone with a SIM and a stack of messages. An envelope travels to a recipient's hand." fetchpriority="high">
+      <figcaption><span>Your app</span><span>Nabda + your phone</span><span>Someone waiting for a text</span></figcaption>
+    </figure>
+    <p class="pencil cover-note">Free to use. You bring the phone and SIM.</p>
+    <p class="cover-download"><a href="#free-download">The free Android app and API starter are here.</a></p>
+    <div class="thread thread-down" aria-hidden="true"><svg viewBox="0 0 110 115"><path d="M48 4C-9 53 118 39 62 100m-18-8 18 12 10-19"/></svg></div>
+  </section>
+
+  <section class="chapter pairing-chapter" id="setup" aria-labelledby="setup-title">
+    <div class="scene-pairing">
+      <figure><img src="/illustrations/nabda-pairing-cutout.webp" width="1554" height="1012" loading="lazy" alt="A hand holds an Android phone toward an illustrative pairing pattern on a laptop. A small key rests on the desk."><figcaption class="pencil">One phone. One pairing. Your own number.</figcaption></figure>
+      <div class="chapter-copy"><h2 id="setup-title">First, give it<br>a phone.</h2><p>Start with an Android phone. A spare phone works too. You can try sandbox mode before selecting a SIM or granting SMS permission; real sending needs an active SIM.</p>
+        <ol class="hand-list">
+          <li><div><h3>Install the Android app.</h3><p>The <a href="/downloads/Nabda-Android-0.2.0.apk" download>Nabda APK</a> runs on Android 8 or newer. This is a signed test build. SMS and phone permissions are needed for carrier sending. The pairing code can also be entered manually if you prefer not to use the camera.</p></div></li>
+          <li><div><h3>Pair it once.</h3><p>Sign in to the <a href="/dashboard">account dashboard</a>, name the phone, and create a pairing code. Scan it in the app. The code lasts ten minutes and works once.</p></div></li>
+          <li><div><h3>Pick a SIM and make a key.</h3><p>Start Connect in test mode on the phone. Create an application API key in your account and keep it on your server. Select a SIM before enabling real phone sending.</p></div></li>
+        </ol>
+        <p class="margin-note">Two SIMs? You choose which one sends. Nabda won't quietly switch numbers.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="chapter free-kit-chapter" id="free-download" aria-labelledby="free-kit-title">
+    <div class="free-kit-intro"><h2 id="free-kit-title">Your free starter,<br>ready to unpack.</h2><p>One download contains the Android test app, small Node.js and Python clients, Postman files, and the API contract. Use it with the hosted service and your own phone.</p><p class="kit-main-link"><a href="/downloads/Nabda-Free-Starter-0.2.0.zip" download>Download Nabda Free Starter 0.2.0 (.zip)</a></p><p class="sample-note">About 1.2 MB. <a href="/downloads/Nabda-Free-Starter-0.2.0.zip.sha256" download>ZIP SHA-256 checksum</a>.</p><p class="sample-note">An integration kit, not a self-hosted server installer. The Android app is a debug-signed test build. No subscription is required; carrier SMS charges still apply.</p></div>
+    <div class="free-kit-files"><h3>Or take just what you need.</h3><dl><div><dt>Android</dt><dd><a href="/downloads/Nabda-Android-0.2.0.apk" download>Nabda Android 0.2.0 APK</a> · Android 8+ · <a href="/downloads/THIRD-PARTY-NOTICES.txt" download>Third-party notices</a></dd></div><div><dt>Node.js</dt><dd><a href="/api-kit/nabda.mjs" download>nabda.mjs</a> · Node.js 22+, no packages to install</dd></div><div><dt>Python</dt><dd><a href="/api-kit/nabda.py" download>nabda.py</a> · Python 3, standard library</dd></div><div><dt>Postman</dt><dd><a href="/api-kit/Nabda.postman_collection.json" download>Collection</a> and <a href="/api-kit/Nabda.postman_environment.json" download>blank environment</a></dd></div><div><dt>Reference</dt><dd><a href="/openapi.json" download>OpenAPI 3.1</a> and <a href="/api-kit/README.md" download>integration guide</a></dd></div></dl><p class="pencil">No keys or phone data<br>are packed inside.</p></div>
+  </section>
+
+  <section class="chapter request-chapter" id="request" aria-labelledby="request-title">
+    <div class="chapter-heading"><div><h2 id="request-title">Now, ask for<br>a text.</h2><p>An appointment reminder is a good first example. Your app makes one HTTP request with the device, recipient, and message.</p></div><p class="pencil request-annotation">This one is a sandbox request.<br>No SMS leaves the SIM.</p></div>
+    <div class="request-scene">
+      <div class="paper-request"><h3><span class="method">POST</span> <code>/v1/messages</code></h3><pre aria-label="Example sandbox message request"><code>curl https://api.example.invalid/v1/messages \
+  -H 'Authorization: Bearer YOUR_APPLICATION_KEY' \
+  -H 'User-Agent: MyApp/1.0' \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: appointment-204-v1' \
+  -d '{
+    "device_id": "YOUR_DEVICE_ID",
+    "to": "RECIPIENT_IN_E164",
+    "content": "Your appointment is tomorrow at 10.",
+    "sandbox": true
+  }'</code></pre><p class="sample-note">Replace the key, device ID, and recipient before running it. Example text only.</p></div>
+      <div class="request-explained"><h3>What's in the envelope?</h3><dl class="field-notes"><div><dt><code>device_id</code></dt><dd>The paired phone that should do the work.</dd></div><div><dt><code>to</code></dt><dd>The recipient's number in international E.164 format. Libyan local numbers are also normalized by this edition.</dd></div><div><dt><code>content</code></dt><dd>The text itself. Spaces and line breaks are preserved.</dd></div><div><dt><code>sandbox: true</code></dt><dd>Run the handoff through the phone without using the carrier. Keep this on for your first test.</dd></div></dl><p class="pencil">The phone has its own credential.<br>Your app key stays in your app.</p></div>
+    </div>
+    <div class="small-story"><h3>If your connection retries...</h3><p>Send the same payload with the same <code>Idempotency-Key</code>. Nabda returns the same message record. Reusing that key for a different payload returns <code>409</code>. Use a fresh key for a genuinely new message.</p><p class="small-print">The key must contain 8–128 visible, non-space ASCII characters. Application keys are shown once, stored as hashes, and can be revoked.</p></div>
+  </section>
+
+  <section class="chapter queue-chapter" id="queue" aria-labelledby="queue-title">
+    <div class="scene-queue"><div class="chapter-copy"><h2 id="queue-title">The queue lives<br>in the phone.</h2><p>This is the important part. Android saves the message in its own SQLite database before it can send anything.</p><ol class="handoff-list"><li>The server temporarily holds the request.</li><li>The phone saves it and asks the server to acknowledge the handoff.</li><li>Only an approved acknowledgement releases the local job.</li><li>The server clears the command's text and recipient. The phone keeps the queue and history.</li></ol><p>After that handoff, the phone can continue received work when its internet drops. New requests and result uploads wait for the connection to return.</p></div><figure><img src="/illustrations/nabda-phone-queue-cutout.webp" width="1554" height="1012" loading="lazy" alt="A mint Android phone contains a filing drawer of saved envelopes and sends a message while its cloud connection is unplugged."><figcaption class="pencil">Saved first. Sent by your SIM.</figcaption></figure></div>
+    <div class="honest-notes"><p><strong>The computer can close.</strong> The phone needs to stay on, with its service running and SIM ready. The website isn't the SMS sender.</p><p><strong>A new request may wait.</strong> This edition checks for work about once a minute while idle. Instant push and webhook delivery aren't configured yet.</p></div>
+  </section>
+
+  <section class="chapter results-chapter" id="results" aria-labelledby="results-title">
+    <div class="results-intro"><h2 id="results-title">“Accepted” is just<br>the beginning.</h2><p>The API returns <code>202 Accepted</code> when it has saved a command. That doesn't mean the phone has sent it, or that the recipient has received it.</p></div>
+    <ol class="status-journey" aria-label="Normal message status journey"><li><code>accepted</code><span>Server saved it</span></li><li><code>on_device</code><span>Phone acknowledged it</span></li><li><code>queued</code><span>Waiting locally</span></li><li><code>processing</code><span>Attempt started</span></li><li><code>sent</code><span>Phone reports sent</span></li><li><code>delivered</code><span>All parts reported delivered</span></li></ol>
+    <div class="scene-results"><figure><img src="/illustrations/nabda-message-parts-cutout.webp" width="1536" height="1024" loading="lazy" alt="A long letter is separated into three SMS envelopes. The delivery slips show a check, a waiting clock, and a question mark."><figcaption class="pencil">One text can be several SMS parts.</figcaption></figure><div class="chapter-copy"><h3>Long messages travel in pieces.</h3><p>Android divides the text into SMS parts. The phone tracks each part; one API request can cost several SMS. Your carrier sets those charges.</p><h3>Sometimes the answer is “unknown”.</h3><p>If the app is interrupted around a modem call, it may not know whether a part went out. It records <code>outcome_unknown</code> instead of blindly sending the same text again. Late callbacks can resolve that uncertainty.</p><h3>Not every journey ends in delivery.</h3><p>A message can also be <code>failed</code>, <code>expired</code>, or <code>cancelled</code>. Carrier receipts aren't always available. These are device-reported results, not proof someone read the text.</p></div></div>
+  </section>
+
+  <section class="chapter api-chapter" id="api" aria-labelledby="api-title">
+    <div class="chapter-heading"><div><h2 id="api-title">The API,<br>on one sheet.</h2><p>Your base URL is <code class="base-url">https://api.example.invalid</code>. Application requests use your Bearer key. Device credentials and browser sign-in are separate.</p></div><p class="pencil">Keep the message ID.<br>It's how you follow the story.</p></div>
+    <div class="api-ledger" role="region" aria-label="Application API endpoints" tabindex="0"><table><thead><tr><th>Request</th><th>What it does</th></tr></thead><tbody><tr><td><span class="method">POST</span><code>/v1/messages</code></td><td>Save a send command. Requires <code>Idempotency-Key</code>. Returns a message record with <code>202</code>.</td></tr><tr><td><span class="method get">GET</span><code>/v1/messages/{id}</code></td><td>Read status, times, device, and SMS-part counts. The original text and recipient aren't returned.</td></tr><tr><td><span class="method">POST</span><code>/v1/messages/{id}/cancellations</code></td><td>Cancel before the phone's approved handoff. After handoff, request cancellation from the phone.</td></tr><tr><td><span class="method get">GET</span><code>/v1/usage</code></td><td>Read accepted commands, pending handoffs, active devices, and device-reported sent messages and parts.</td></tr><tr><td><span class="method get">GET</span><code>/health</code></td><td>Check that the control plane is responding. It doesn't test your SIM or carrier.</td></tr></tbody></table></div>
+    <div class="api-notebook"><div><h3>A response has tracking details.</h3><p>The accepted response is the message record itself, without a wrapper. <code>id</code>, <code>status</code>, <code>device_id</code>, <code>sandbox</code>, timestamps, part counts, cancellation state, and a failure code describe its progress.</p><pre aria-label="Example tracking fields, excerpt"><code>{
+  "id": "MESSAGE_ID",
+  "status": "accepted",
+  "device_id": "YOUR_DEVICE_ID",
+  "sandbox": true,
+  "handed_off_at": null,
+  "parts_total": null,
+  "parts_sent": null,
+  "parts_delivered": null
+}</code></pre><p class="sample-note">An excerpt of the response fields; identifiers are placeholders.</p></div><div><h3>Send later, or let it expire.</h3><p>Add <code>send_at</code> as an ISO 8601 timestamp to schedule up to 30 days ahead. Optional <code>expires_at</code> must be after the send time and within the supported 31-day window.</p><p>Without an explicit expiry, work expires 24 hours after the later of now or its scheduled send time. A phone being offline doesn't pause that deadline.</p><h3>Read usage carefully.</h3><p><code>accepted_commands</code> counts new commands. <code>pending_handoffs</code> counts work awaiting the phone. <code>reported_sent_parts</code> comes from device reports. <code>carrier_cost</code> is <code>null</code>; Nabda can't read your SIM bill.</p></div></div>
+
+    <div class="contract-sheet" id="request-fields">
+      <h3>The complete send request</h3><p>Use <code>Authorization: Bearer YOUR_APPLICATION_KEY</code>, <code>Content-Type: application/json</code>, and a new <code>Idempotency-Key</code> for each new message. Identical retries reuse that key and payload.</p>
+      <div class="api-ledger" role="region" aria-label="Message request fields" tabindex="0"><table><thead><tr><th>JSON field</th><th>Required</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td><code>device_id</code></td><td>Yes · string</td><td>An active paired phone in your workspace. Copy its ID from your account.</td></tr>
+        <tr><td><code>to</code></td><td>Yes · string</td><td>A valid international number, or a supported Libyan local form. Normalized before deduplication and opt-out checks.</td></tr>
+        <tr><td><code>content</code></td><td>Yes · string</td><td>Non-empty text, up to 4,000 UTF-16 units. Whitespace and line breaks are retained.</td></tr>
+        <tr><td><code>sandbox</code></td><td>No · boolean</td><td><strong>Set this to true for testing.</strong> The raw API defaults to false when omitted; the supplied clients and Postman example explicitly default to true.</td></tr>
+        <tr><td><code>send_at</code></td><td>No · timestamp</td><td>An ISO 8601 time with a timezone. Defaults to now. Schedule up to 30 days ahead; the phone owns the local schedule after handoff.</td></tr>
+        <tr><td><code>expires_at</code></td><td>No · timestamp</td><td>Later than now and the send time, within 31 days. Defaults to 24 hours after the later of now or <code>send_at</code>.</td></tr>
+      </tbody></table></div>
+      <p class="sample-note">Text length and platform allowance are separate from SMS-part count, carrier capacity, and your SIM bill. The whole JSON body must fit within 128 KiB.</p>
+    </div>
+    <div class="api-notebook full-response-note">
+      <div><h3>What the response fields mean</h3><dl class="field-notes"><div><dt><code>id</code> and <code>device_id</code></dt><dd>The message identifier and its assigned phone.</dd></div><div><dt><code>created_at</code>, <code>updated_at</code></dt><dd>Server timestamps, with the schedule in <code>send_at</code> and expiry in <code>expires_at</code>.</dd></div><div><dt><code>handed_off_at</code></dt><dd>Null until the server approves the phone's durable acknowledgement.</dd></div><div><dt><code>parts_total</code>, <code>parts_sent</code>, <code>parts_delivered</code></dt><dd>Initially null. Counters become known when the phone reports them. A missing count does not mean zero SMS were sent.</dd></div><div><dt><code>cancellation_requested</code></dt><dd>Whether cancellation was requested. Check the result rather than assuming it stopped the modem.</dd></div><div><dt><code>failure_code</code></dt><dd>A symbolic reason if supplied by the phone or server; otherwise null.</dd></div></dl></div>
+      <div><h3>Read, cancel, and check usage</h3><pre aria-label="Message status, cancellation, and usage requests"><code>GET /v1/messages/MESSAGE_ID
+Authorization: Bearer YOUR_APPLICATION_KEY
+
+POST /v1/messages/MESSAGE_ID/cancellations
+Authorization: Bearer YOUR_APPLICATION_KEY
+Content-Type: application/json
+
+{}
+
+GET /v1/usage
+Authorization: Bearer YOUR_APPLICATION_KEY</code></pre><p>Reads and cancellation are scoped to your workspace. Cancellation before approved handoff returns <code>guaranteed: true</code>. After handoff it returns <code>guaranteed: false</code> until the phone confirms cancellation. Repeating a request for an already cancelled message keeps it cancelled.</p><p>Usage includes <code>day_utc</code>, accepted commands, pending handoffs, active devices, reported sent messages and parts, and the applicable limits. The <code>source</code> is <code>device_reported</code>.</p></div>
+    </div>
+    <div class="client-examples" id="client-examples">
+      <h3>Unzip it. Set your values. Try health first.</h3><p>Run these from the extracted kit folder. Keep the key in your environment, not in the client file or a public web page. Replace every placeholder. No API key is needed for health.</p>
+      <div class="api-notebook"><div><h4>macOS or Linux · Node.js</h4><pre aria-label="Node.js client commands on macOS or Linux"><code>export NABDA_BASE_URL='https://api.example.invalid'
+node api-kit/nabda.mjs health
+
+export NABDA_API_KEY='YOUR_APPLICATION_KEY'
+export NABDA_DEVICE_ID='YOUR_DEVICE_ID'
+export NABDA_TO='RECIPIENT_IN_E164'
+
+# Save your text as UTF-8 message.txt, then:
+node api-kit/nabda.mjs send \
+  --content-file message.txt \
+  --idempotency-key first-sandbox-001
+
+node api-kit/nabda.mjs status --id MESSAGE_ID
+node api-kit/nabda.mjs usage
+node api-kit/nabda.mjs cancel --id MESSAGE_ID</code></pre></div><div><h4>Windows · PowerShell and Python</h4><pre aria-label="Python client commands in Windows PowerShell"><code>$env:NABDA_BASE_URL = 'https://api.example.invalid'
+py api-kit/nabda.py health
+
+$env:NABDA_API_KEY = 'YOUR_APPLICATION_KEY'
+$env:NABDA_DEVICE_ID = 'YOUR_DEVICE_ID'
+$env:NABDA_TO = 'RECIPIENT_IN_E164'
+
+# Save your text as UTF-8 message.txt, then:
+py api-kit/nabda.py send --content-file message.txt --idempotency-key first-sandbox-001
+
+py api-kit/nabda.py status --id MESSAGE_ID
+py api-kit/nabda.py usage
+py api-kit/nabda.py cancel --id MESSAGE_ID</code></pre></div></div>
+      <p>Both clients set <code>sandbox: true</code> unless you explicitly pass <code>--live</code>. They don't automatically retry or invent a new idempotency key after a timeout. For an intentional retry, keep the same key and text.</p><p>In Postman, import both JSON files, select the environment, and fill your own key, phone ID, and recipient. The send example uses sandbox mode. Don't export or share your filled environment with credentials inside.</p>
+    </div>
+    <div class="management-reference" id="account-api"><h3>Account endpoints use browser sign-in.</h3><p>The dashboard uses GitHub sign-in and a private Nabda session on the API server. An application key cannot create keys or pair devices, and a device token cannot use application routes. Never try to authenticate by setting identity headers yourself.</p><div class="api-ledger" role="region" aria-label="Browser account API" tabindex="0"><table><thead><tr><th>Request</th><th>Purpose</th></tr></thead><tbody>
+      <tr><td><span class="method get">GET</span><code>/api/account</code></td><td>Workspace, account display fields, devices, keys, and usage.</td></tr>
+      <tr><td><span class="method get">GET</span><code>/api/devices</code></td><td>Phone metadata, recent check-in, permissions and SIM readiness.</td></tr>
+      <tr><td><span class="method">POST</span><code>/api/keys</code></td><td><code>{"name":"YOUR_APP_NAME"}</code> creates an application key, shown in full once.</td></tr>
+      <tr><td><span class="method">DELETE</span><code>/api/keys/{id}</code></td><td>Revoke an application key.</td></tr>
+      <tr><td><span class="method">POST</span><code>/api/pairings</code></td><td><code>{"name":"YOUR_PHONE_NAME"}</code> creates a one-use, ten-minute code and pairing link.</td></tr>
+      <tr><td><span class="method">DELETE</span><code>/api/devices/{id}</code></td><td>Revoke future cloud access. It cannot recall work held by an offline phone.</td></tr>
+      <tr><td><span class="method get">GET</span><code>/api/messages</code></td><td>Metadata history with <code>limit</code> and an opaque <code>cursor</code>. Default page size 25.</td></tr>
+      <tr><td><span class="method">POST</span><code>/api/messages/{id}/cancel</code></td><td>Request cancellation from the browser workspace.</td></tr>
+    </tbody></table></div><p class="sample-note">Key and phone names accept up to 80 characters. Store raw keys privately; only verifiers are stored in the cloud. Revoking one credential does not revoke every key in the workspace.</p></div>
+    <div class="phone-protocol-reference"><h3>The phone protocol, step by step.</h3><ol class="handoff-list"><li><code>POST /v1/device/pair</code>: send the one-time pairing token and device details. Store the returned phone credential securely.</li><li><code>POST /v1/device/poll</code>: report readiness and fetch up to 25 commands. A repeated command still has the same ID.</li><li>Commit the command to SQLite before <code>POST /v1/device/ack</code>. Only returned <code>acknowledged</code> IDs may execute; handle every <code>rejected</code> reason.</li><li><code>POST /v1/device/events</code>: upload stable event IDs, message ID, status and timestamp, with consistent part counts. Reusing an event ID for changed data returns <code>409</code>.</li></ol><p>The supplied Android app implements this protocol. Polling, ACK and events use the device Bearer token; pairing uses its one-time token. App keys are a different credential. A sandbox report verifies the software path, not carrier delivery.</p></div>
+
+    <div class="protocol-note"><h3>Under the hood: the phone's four requests.</h3><p><code>POST /v1/device/pair</code> consumes a pairing token. <code>POST /v1/device/poll</code> fetches up to 25 pending commands. <code>POST /v1/device/ack</code> approves durable handoff. <code>POST /v1/device/events</code> uploads deduplicated results, up to 100 events at a time.</p><p>Ordinary applications don't use these device endpoints. For every field, management route, and error schema, the <a href="/openapi.json" download>OpenAPI specification</a> is available as a plain JSON file.</p></div>
+  </section>
+
+  <section class="chapter limits-chapter" id="limits" aria-labelledby="limits-title">
+    <h2 id="limits-title">Free to use.<br>Bring your own SIM.</h2><p class="chapter-lead">There is no Nabda subscription. You supply the phone, SIM, and carrier service. Optional support doesn't buy extra permissions or priority.</p>
+    <div class="allowance-sheet"><h3>The current workspace allowances</h3><dl><div><dt>New commands per UTC day</dt><dd>1,000</dd></div><div><dt>Commands awaiting phone handoff</dt><dd>500</dd></div><div><dt>Active application keys</dt><dd>20</dd></div><div><dt>Valid pairing codes at once</dt><dd>5</dd></div><div><dt>Message text</dt><dd>4,000 UTF-16 units</dd></div><div><dt>HTTP request body</dt><dd>128 KiB</dd></div></dl><p>These organize the free control plane. They aren't Android speed settings or a promise of delivery time. Android, your SIM, and the carrier can impose their own limits.</p></div>
+    <div class="error-notes"><h3>When the API says no</h3><p><code>400</code> malformed JSON · <code>401</code> invalid or revoked credentials · <code>404</code> unavailable resource · <code>409</code> conflicting idempotency, state, or opt-out · <code>413</code> body too large · <code>415</code> wrong content type · <code>422</code> invalid fields · <code>429</code> workspace allowance reached.</p><p>Read the JSON error's <code>code</code> and <code>message</code>. Resolve the cause rather than repeatedly creating new message requests.</p></div>
+  </section>
+
+  <section class="chapter questions-chapter" id="questions" aria-labelledby="questions-title">
+    <h2 id="questions-title">A few things<br>you'll probably ask.</h2>
+    <dl class="questions"><div><dt>Can I test it without sending an SMS?</dt><dd>Yes. Start the phone in test mode and send <code>sandbox: true</code>. It exercises the handoff and local queue. It doesn't prove carrier delivery. When you're ready for a real test on a number you control, explicitly start phone sending in the Android app.</dd></div><div><dt>Can I turn the computer off?</dt><dd>Yes, after the phone has received and acknowledged the work. Keep the phone on and its service running. It still needs internet for new requests and for uploading results.</dd></div><div><dt>What if I stop it?</dt><dd>Local stop prevents new modem submissions. Cancellation from the website needs to reach the phone. An SMS already submitted to the modem can't be recalled. Revoking an offline device doesn't instantly erase the queue it already owns.</dd></div><div><dt>Why hasn't a new request arrived?</dt><dd>Idle polling is about once a minute. Also check the service, connection, SIM, permissions, test/live mode, schedule, and expiry. The phone's local history has the detailed record.</dd></div><div><dt>Python gives me Cloudflare error 1010.</dt><dd>Some default library user agents are rejected before reaching the API. Set a descriptive <code>User-Agent</code>, such as <code>MyApp/1.0</code>. It identifies your client and doesn't replace the API key. This is <a href="https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/">Cloudflare's documented client setup</a>.</dd></div><div><dt>Is this a finished production gateway?</dt><dd>This is the first working edition. The APK is debug-signed for testing. Physical-device permissions, background endurance, SIM behavior, and carrier delivery still need controlled tests. Push, public webhooks, contacts sync, and phone backup aren't included.</dd></div></dl>
+  </section>
+
+  <section class="chapter fine-print-chapter" aria-label="Data and use of Nabda"><div id="privacy"><h2>Your data,<br>plainly explained.</h2><p>The phone keeps text, recipients, attempts, part outcomes, and full local history. The cloud keeps account identity, hashed credentials, device records, temporary commands, and status metadata.</p><p>Command content is cleared after approved handoff. Unreceived expired work is cleaned when the phone polls, or through cancellation or revocation; there isn't a scheduled retention job with a guaranteed deletion deadline. Phone backup and restore aren't included. Losing local app data can mean losing history.</p><p>GitHub verifies your sign-in. Cloudflare hosts the API and account records; Netlify serves this illustrated guide. The illustrated guide does not fetch your account or submit messages. The hosting platform may add its own browser security checks.</p></div><div id="terms"><h2>Send something<br>people expect.</h2><p>An appointment reminder. An order ready for pickup. An update someone asked to receive. Use Nabda for legitimate messages and respect requests to stop. The cloud checks its opt-out list and the phone checks its local blocklist.</p><p>Fraud, impersonation, harassment, and unsolicited bulk messages aren't acceptable uses. You manage your phone, carrier agreement, permissions, and SMS costs. A free API isn't a guarantee that a phone is online or a message will arrive.</p><p>Don't rely on this edition alone for emergency communication. The project is made for learning, building, and maintaining something useful.</p></div></section>
+
+  <section class="chapter disclaimer-chapter" id="disclaimer" aria-labelledby="disclaimer-title">
+    <h2 id="disclaimer-title">I provide the tool.<br>You are responsible for your use.</h2>
+    <div class="disclaimer-copy"><div><p>I develop and maintain Nabda as a software tool for learning and practical integrations. Users choose their own messages, recipients, devices, SIMs and sending decisions. Providing the tool does not mean I endorse or authorize a user's independent actions.</p><p>Each user is responsible for their account and API keys, message content, recipient consent, lawful handling of contact data, carrier terms, SMS charges, and the consequences of their own use or misuse.</p></div><div><p>The software is provided as is and as available, without a guarantee of uninterrupted operation, successful delivery or suitability for a particular purpose, to the extent permitted by applicable law.</p><p>To the extent permitted by applicable law, the developer is not liable for users' independent actions, content, recipient lists, unauthorized use, misuse, or losses caused by those actions. This notice does not exclude or limit any duty or liability that applicable law does not allow to be excluded or limited.</p></div></div>
+    <p class="disclaimer-law">This notice does not permit spam, harassment, fraud or unlawful activity. Legal reference: <a href="https://www.aladel.gov.ly/home/wp-content/uploads/2016/04/%D8%A7%D9%84%D9%82%D8%A7%D9%86%D9%88-%D9%86-%D8%A7%D9%84%D9%85%D8%AF%D9%86%D9%8A.pdf">Libyan Civil Code, Articles 166 and 220, published by the Ministry of Justice</a>. Mandatory legal obligations continue to apply.</p>
+  </section>
+
+  <section class="last-page" id="support" aria-labelledby="support-title">
+    <svg class="coffee-drawing" viewBox="0 0 120 130" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 48c5 21 1 46 30 47 25 0 27-21 30-47-20 3-40-1-60 0Zm59 5c35-11 35 25-6 26M11 106c22 4 52 3 78-1M39 32c-19-15 18-18 0-35M62 32c-18-14 15-19 0-31M22 116c16 3 34 3 52 0" transform="translate(8 9)"/></svg>
+    <h2 id="support-title">I made this.<br>I hope it helps.</h2><p>I built Nabda to learn and to make something useful. If it helped you and you'd like to support the work, the details are here. No pressure, and thanks either way.</p><details class="support-reveal"><summary><span class="reveal-label">Show support details</span><span class="conceal-label">Hide support details</span></summary><dl class="support-details"><div><dt>LYPay</dt><dd>LY93007011011011325337018</dd></div><div><dt>OnePay</dt><dd>011011325337018</dd></div></dl></details><p class="small-print">Use your own payment app and check the recipient before confirming. Support is optional and doesn't change your access.</p><p class="pencil end-note">Thanks for taking a look.</p>
+  </section>
+</main>
+</body>
+</html>

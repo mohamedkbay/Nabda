@@ -1,94 +1,104 @@
 {
-  "name": "nabda-api-saas",
-  "version": "0.1.0",
+  "name": "nabda",
+  "version": "0.2.0",
   "private": true,
-  "author": "Nabda Project",
-  "description": "Background Windows controller and self-hosted API for the Nabda Android SIM gateway",
-  "type": "module",
-  "main": "desktop-dist/main.js",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "vercel:build": "node scripts/build-vercel-static.mjs",
-    "check": "tsc -p tsconfig.json --noEmit",
-    "dev": "tsx watch --env-file=.env src/server.ts",
-    "worker:dev": "tsx watch --env-file=.env src/worker.ts",
-    "start": "node dist/server.js",
-    "worker": "node dist/worker.js",
-    "db:migrate": "tsx --env-file=.env src/db/migrate.ts",
-    "db:migrate:prod": "node dist/db/migrate.js",
-    "db:seed": "tsx --env-file=.env src/db/seed.ts",
-    "db:free": "tsx --env-file=.env src/db/provision-free.ts",
-    "db:device-agent": "tsx --env-file=.env src/db/provision-device-agent.ts",
-    "android:build:simulation": "cd android-agent && ./gradlew --no-daemon testSimulationDebugUnitTest lintSimulationDebug assembleSimulationDebug",
-    "android:build:lan": "cd android-agent && ./gradlew --no-daemon testLiveDebugUnitTest lintLiveDebug assembleLiveDebug -PenableLiveSms=true",
-    "android:install:simulation": "sh scripts/install-android-simulation.sh",
-    "android:install:lan": "sh scripts/install-android-lan.sh",
-    "android:smoke:simulation": "node scripts/device-agent-smoke.mjs",
-    "android:smoke:lan-live": "node scripts/lan-live-smoke.mjs",
-    "build:desktop": "node scripts/clean-desktop-dist.mjs && tsc -p tsconfig.desktop.json && node scripts/copy-desktop-assets.mjs",
-    "dev:desktop": "npm run build:desktop && electron .",
-    "test:desktop": "vitest run tests/desktop-core.test.ts tests/desktop-backup-migration.test.ts tests/desktop-shell-security.test.ts tests/windows-controller.test.ts",
-    "dist:dir": "npm run build:desktop && electron-builder --dir",
-    "dist:win": "npm run test:desktop && npm run build:desktop && electron-builder --win nsis --x64 --publish never",
-    "smoke": "node scripts/smoke-test.mjs",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "install:ci": "node scripts/install-ci.mjs",
+    "dev": "node scripts/run-cloudflare.mjs dev --preview",
+    "build": "node scripts/build-independent.mjs --preview",
+    "build:cloudflare": "node scripts/build-cloudflare.mjs",
+    "build:netlify": "node scripts/build-netlify.mjs",
+    "build:independent": "node scripts/build-independent.mjs",
+    "dev:cloudflare": "node scripts/run-cloudflare.mjs dev",
+    "check:cloudflare": "node scripts/run-cloudflare.mjs check",
+    "deploy:cloudflare": "node scripts/run-cloudflare.mjs deploy",
+    "db:migrate:local": "node scripts/run-cloudflare.mjs migrate-local",
+    "db:migrate:remote": "node scripts/run-cloudflare.mjs migrate-remote",
+    "secret:cloudflare": "node scripts/run-cloudflare.mjs secret",
+    "start": "node scripts/run-cloudflare.mjs dev --preview",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "db:generate": "drizzle-kit generate",
+    "dev:legacy": "node scripts/run-framework.mjs dev",
+    "build:legacy": "node scripts/run-framework.mjs build",
+    "start:legacy": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
+    "typecheck": "tsc --noEmit",
+    "test": "node tests/verification-api.mjs && node tests/verification-key-cap.mjs && node tests/verification-independent.mjs && node tests/verification-deployment.mjs"
   },
   "dependencies": {
-    "@fastify/helmet": "^13.0.0",
-    "@fontsource-variable/cairo": "^5.3.0",
-    "bullmq": "^5.0.0",
-    "fastify": "^5.0.0",
-    "ioredis": "^5.0.0",
-    "pg": "^8.0.0",
-    "zod": "^4.0.0"
+    "@base-ui/react": "^1.7.0",
+    "@hookform/resolvers": "^5.7.1",
+    "@shadcn/react": "^0.3.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.4.0",
+    "drizzle-orm": "0.45.2",
+    "embla-carousel-react": "^8.6.0",
+    "input-otp": "^1.4.2",
+    "lucide-react": "^1.31.0",
+    "next": "16.3.4",
+    "next-themes": "^0.4.6",
+    "qrcode": "^1.5.4",
+    "radix-ui": "^1.6.7",
+    "react": "19.2.6",
+    "react-day-picker": "^10.0.1",
+    "react-dom": "19.2.6",
+    "react-hook-form": "^7.85.0",
+    "react-resizable-panels": "^4.12.2",
+    "recharts": "^3.8.0",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "3.6.0",
+    "vaul": "^1.1.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "@types/pg": "^8.0.0",
-    "electron": "^44.1.0",
-    "electron-builder": "^26.15.3",
-    "qrcode-generator": "^2.0.4",
-    "tsx": "^4.0.0",
-    "typescript": "^5.9.0",
-    "vitest": "^4.0.0"
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@cloudflare/workers-types": "4.20260515.1",
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.3.4",
+    "json-rpc-2.0": "1.7.1",
+    "raw-body": "3.0.2",
+    "react-server-dom-webpack": "19.2.6",
+    "tailwindcss": "4.2.1",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "5.9.3",
+    "vinext": "1.0.0-beta.5",
+    "vite": "8.0.13",
+    "wrangler": "4.92.0"
   },
-  "build": {
-    "appId": "com.nabda.controller",
-    "productName": "نبضة",
-    "icon": "build/icon.png",
-    "asar": true,
-    "npmRebuild": false,
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "desktop-dist/**/*",
-      "build/icon.png",
-      "package.json",
-      "!node_modules/**/*"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "artifactName": "Nabda-Controller-${version}-Setup-${arch}.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "deleteAppDataOnUninstall": false,
-      "runAfterFinish": true
+  "type": "module",
+  "overrides": {
+    "miniflare": {
+      "sharp": "0.35.4"
     }
-  }
+  },
+  "description": "An open-source SMS API powered by your own Android phone and SIM.",
+  "license": "MIT",
+  "author": "Mohamed Bay",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mohamedkbay/Nabda.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mohamedkbay/Nabda/issues"
+  },
+  "homepage": "https://github.com/mohamedkbay/Nabda#readme",
+  "keywords": [
+    "sms",
+    "android",
+    "api",
+    "cloudflare-workers",
+    "self-hosted"
+  ]
 }

@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "Nabda Free Starter 0.2.0 — sandbox application API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Application requests only. Import the blank environment, fill it privately, and run requests individually. Send always sets sandbox:true. 202 means accepted, not sent. Device protocol and browser management are described in README.md and openapi.json. No real SMS is sent by this collection."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const base = pm.environment.get(\"base_url\") || \"\";",
+          "const httpsOrigin = /^https:\\/\\/(?:[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)*|\\[[A-Fa-f0-9:]+\\])(?::[0-9]{1,5})?\\/?$/;",
+          "const localOrigin = /^http:\\/\\/(?:localhost|127\\.0\\.0\\.1|\\[::1\\])(?::[0-9]{1,5})?\\/?$/;",
+          "if (!httpsOrigin.test(base) && !localOrigin.test(base)) throw new Error(\"Use an HTTPS origin without credentials, path, query or fragment. HTTP is for loopback only.\");",
+          "if (pm.info.requestName !== \"Health\" && !(pm.environment.get(\"api_key\") || \"\")) throw new Error(\"Set the private api_key environment value.\");",
+          "if (pm.info.requestName === \"Send sandbox message\") {",
+          "  for (const key of [\"device_id\", \"to\", \"content\", \"idempotency_key\"]) if (!(pm.environment.get(key) || \"\").trim()) throw new Error(\"Set \" + key + \" before sending a sandbox command.\");",
+          "  if (!/^[\\x21-\\x7e]{8,128}$/.test(pm.environment.get(\"idempotency_key\"))) throw new Error(\"Use a stable 8–128 character non-space ASCII idempotency_key.\");",
+          "  pm.variables.set(\"send_payload\", JSON.stringify({device_id:pm.environment.get(\"device_id\"),to:pm.environment.get(\"to\"),content:pm.environment.get(\"content\"),sandbox:true}));",
+          "}",
+          "if ([\"Get message\", \"Cancel message\"].includes(pm.info.requestName) && !(pm.environment.get(\"message_id\") || \"\")) throw new Error(\"Set message_id from a previously accepted response.\");"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "Liveness only. Does not test database or phone."
+      },
+      "protocolProfileBehavior": {
+        "followRedirects": false
+      }
+    },
+    {
+      "name": "Send sandbox message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotency_key}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/messages",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "messages"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{send_payload}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Creates ONE sandbox command. The pre-request script constructs JSON with literal sandbox:true and safely escapes content. No live-send request is included. Keep idempotency_key unchanged when retrying the same logical request."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 202) { const result = pm.response.json(); if (typeof result.id === \"string\") pm.environment.set(\"message_id\", result.id); }",
+              "pm.test(\"Command accepted\", function () { pm.response.to.have.status(202); });"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "followRedirects": false
+      }
+    },
+    {
+      "name": "Get message",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/messages/{{message_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "messages",
+            "{{message_id}}"
+          ]
+        }
+      },
+      "protocolProfileBehavior": {
+        "followRedirects": false
+      }
+    },
+    {
+      "name": "Usage",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/usage",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "usage"
+          ]
+        }
+      },
+      "protocolProfileBehavior": {
+        "followRedirects": false
+      }
+    },
+    {
+      "name": "Cancel message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/messages/{{message_id}}/cancellations",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "messages",
+            "{{message_id}}",
+            "cancellations"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Guaranteed before handoff only; best effort after ACK. Cannot recall submitted SMS."
+      },
+      "protocolProfileBehavior": {
+        "followRedirects": false
+      }
+    }
+  ]
+}

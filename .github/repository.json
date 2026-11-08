@@ -1,0 +1,7 @@
+{
+  "repository": "mohamedkbay/Nabda",
+  "description": "An open-source SMS API powered by your Android phone and SIM. Phone-owned queue, QR pairing, API keys and sandbox testing.",
+  "topics": ["sms-api", "sms-gateway", "android", "typescript", "cloudflare-workers", "cloudflare-d1", "sqlite", "java", "netlify", "open-source"],
+  "homepage": "https://nabda-phone-api.netlify.app/",
+  "visibility": "public"
+}

@@ -1,0 +1,91 @@
+/* Nabda's illustrated edition: an ink drawing first, a quiet interface around it. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+h1,h2,h3,h4{font-weight:600;letter-spacing:-.025em}
+.button{position:relative;border:1.5px solid var(--ink);border-radius:5px 9px 5px 7px;min-height:52px;font-weight:600;box-shadow:0 3px 5px rgb(32 40 36 / 5%);transition:background .18s ease,box-shadow .18s ease,transform .18s ease}
+.button.dark{background:var(--mint);color:var(--ink)}
+.button.dark:hover{background:#b7dfbb;color:var(--ink);box-shadow:0 4px 8px rgb(32 40 36 / 10%)}
+.button:hover{transform:translateY(-1px)}
+.button:active{transform:translateY(1px);box-shadow:none}
+.button.outline{background:var(--paper)}
+.button svg{width:22px}
+.illustrated-home .text-link{font-weight:600;font-size:14px}
+.studio-hero{padding-top:56px}
+.studio-intro{display:grid;grid-template-columns:1.1fr 1fr;align-items:center;gap:95px}
+.studio-intro h1{font-size:clamp(56px,6.1vw,84px);line-height:1.14;letter-spacing:-.032em;max-width:650px;padding-bottom:7px}
+.ink-underline{position:relative;white-space:nowrap}
+.ink-underline:after{content:'';position:absolute;inset-inline:0;bottom:-9px;height:8px;border-top:3px solid var(--green);border-radius:60% 40%;transform:rotate(-2deg);opacity:.75}
+.studio-intro-detail>p:first-child{font-size:17px;line-height:1.9;max-width:420px;margin:0}
+.studio-intro-detail .hero-actions{margin-top:24px;gap:27px}
+.studio-intro-detail .studio-free{font-size:12px;color:var(--muted);margin:15px 0 0}
+.workshop-figure{margin:30px 0 0;direction:ltr}
+.workshop-figure>img{display:block;width:100%;height:auto;mix-blend-mode:multiply}
+.workshop-figure figcaption{display:grid;grid-template-columns:26% 41% 33%;text-align:center;font-family:Caveat,cursive;font-weight:500;font-size:24px;line-height:1.5;color:var(--muted);padding:0 3% 32px;transform:translateY(-12px)}
+.workshop-figure figcaption>span:first-child{text-align:start;padding-inline-start:7%}
+.workshop-figure figcaption>span:last-child{text-align:end;padding-inline-end:4%}
+[dir=rtl] .workshop-figure figcaption{font-family:Cairo,sans-serif;font-size:16px}
+[dir=rtl] .studio-intro h1{font-size:clamp(47px,5.3vw,74px);line-height:1.5;letter-spacing:0}
+[dir=rtl] .studio-intro{grid-template-columns:1.2fr 1fr;gap:65px}
+.setup-section{display:grid;grid-template-columns:.9fr 1.1fr;gap:105px;padding-block:72px 76px;border-top:1px solid var(--ink)}
+.setup-heading{padding-top:14px}
+.setup-heading h2{max-width:380px;font-size:clamp(32px,3.3vw,44px);line-height:1.25}
+.setup-heading>p{font-size:15px;line-height:1.9;color:var(--muted);max-width:330px;margin-top:22px}
+.setup-instructions{list-style:none;padding:0;margin:0}
+.setup-instructions>li{display:flex;gap:25px;padding-block:26px;border-bottom:1px solid var(--line)}
+.setup-instructions>li:first-child{padding-top:12px}
+.setup-instructions>li:last-child{border-bottom:0;padding-bottom:0}
+.setup-instructions .step-number{margin-top:2px;font-family:Caveat,cursive;font-size:23px;font-weight:500;width:34px;height:36px;border-radius:46% 50% 42% 51%;background:#f0eadb}
+.setup-instructions h3{font-size:21px;font-weight:600;line-height:1.4}
+.setup-instructions p{font-size:14px;line-height:1.9;color:var(--muted);margin:10px 0 0;max-width:450px}
+.setup-instructions .text-link{margin-top:8px;min-height:35px;font-size:12px}
+.request-section{background:#f0f1e9;border-block:1px solid #d4d8cc;padding-block:75px}
+.request-section .developer-grid{grid-template-columns:.85fr 1.15fr;gap:85px}
+.request-section h2{font-size:42px;line-height:1.25}
+.request-section .developer-grid>div>p{font-size:15px}
+.request-section .developer-grid>div>.request-footnote{font-size:12px;margin-top:26px;line-height:1.9;max-width:335px}
+.code-window{background:#fffefb;color:var(--ink);border:1.5px solid var(--ink);border-radius:6px 10px 5px 8px;box-shadow:0 10px 22px rgb(32 40 36 / 6%)}
+.code-top{background:#f9f7ef;border-bottom:1px solid var(--ink);color:var(--ink);padding:12px 22px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}
+.code-top .copy-button{color:var(--ink);font-family:Cairo,sans-serif}
+.code-window pre{color:#344d3d;font-size:12px;line-height:1.95;padding:25px 24px}
+.code-bottom{background:#e4efde;color:var(--green);border-top:1px solid #c7d5be;padding-block:13px}
+.code-bottom>span:last-child{color:#44543f}
+.code-bottom .status-dot{background:#51794c}
+.phone-owned{padding-block:85px;grid-template-columns:.7fr 1fr;gap:100px}
+.phone-owned h2{font-size:39px}
+.phone-note{gap:12px}
+.phone-note>svg{height:115px;width:115px;transform:rotate(-6deg)}
+.support-strip{padding-block:32px 46px;border-color:var(--ink)}
+.support-strip h3{font-weight:600}
+.site-footer{background:#f1f0e8}
+.interior h1{font-weight:600;letter-spacing:-.025em}
+.docs-body h1{font-weight:600}
+.docs-export{display:flex;align-items:center;gap:9px;font-size:11px;min-height:44px;margin-top:15px;border-top:1px solid var(--line);padding-top:12px}
+.docs-export svg{width:15px;height:15px}
+.download-phone{position:relative;overflow:hidden;border-radius:0;min-height:375px;justify-content:center}
+.download-workshop{width:740px;max-width:none;mix-blend-mode:multiply;position:absolute;left:50%;top:-8px;transform:translateX(-50%);clip-path:inset(0 27% 0 30%)}
+.download-phone>.handwriting{margin-top:332px;position:relative;font-size:23px}
+@media(min-width:1450px){.studio-hero{padding-top:68px}.studio-intro h1{font-size:88px}.workshop-figure{margin-top:25px}}
+@media(max-width:1050px){.studio-intro{gap:42px;grid-template-columns:1.1fr 1fr}.studio-intro h1{font-size:68px}.studio-intro-detail>p:first-child{font-size:15px}.studio-intro-detail .hero-actions{gap:15px}.studio-intro-detail .button{font-size:12px;padding-inline:17px}.studio-intro-detail .text-link{font-size:12px}.setup-section{gap:55px}.request-section .developer-grid{gap:40px}.phone-owned{gap:45px}[dir=rtl] .studio-intro{gap:36px}}
+@media(max-width:760px){
+ .studio-hero{padding-top:35px}
+ .studio-intro{grid-template-columns:1fr;gap:25px}
+ .studio-intro h1{font-size:clamp(54px,10.5vw,70px);line-height:1.15;max-width:450px}
+ .studio-intro-detail>p:first-child{font-size:15px;max-width:440px;line-height:1.85}
+ .studio-intro-detail .hero-actions{gap:24px;margin-top:22px;flex-wrap:wrap}
+ .studio-intro-detail .button{font-size:13px;min-height:49px;padding-inline:20px}
+ .studio-intro-detail .text-link{font-size:13px}
+ .studio-intro-detail .studio-free{font-size:11px;margin-top:14px;line-height:1.8}
+ .ink-underline:after{bottom:-8px;height:6px;border-top-width:2px}
+ .workshop-figure{margin:28px -12px 0}
+ .workshop-figure figcaption{font-size:18px;transform:translateY(0);padding:7px 4% 26px;grid-template-columns:26% 43% 31%}
+ [dir=rtl] .studio-intro{grid-template-columns:1fr;gap:22px}
+ [dir=rtl] .studio-intro h1{font-size:clamp(40px,9.8vw,61px);line-height:1.55}
+ [dir=rtl] .workshop-figure figcaption{font-size:12px}
+ .setup-section{grid-template-columns:1fr;gap:23px;padding-block:38px 45px}
+ .setup-heading{padding-top:0}.setup-heading h2{font-size:33px;max-width:380px}.setup-heading>p{font-size:14px;margin-top:16px;max-width:420px}.setup-heading .text-link{font-size:13px}
+ .setup-instructions>li{gap:18px;padding-block:22px}.setup-instructions>li:first-child{border-top:1px solid var(--line);padding-top:23px}.setup-instructions h3{font-size:19px}.setup-instructions p{font-size:13px;line-height:1.9}.setup-instructions .step-number{width:31px;height:33px;font-size:21px}
+ .request-section{padding-block:43px}.request-section .developer-grid{grid-template-columns:1fr;gap:25px}.request-section h2{font-size:34px}.request-section .developer-grid>div>p{font-size:14px;margin-top:18px}.request-section .developer-grid>div>.request-footnote{font-size:12px;margin-top:14px;max-width:420px}
+ .code-window pre{font-size:10.5px;padding:20px 15px}.code-top{padding:11px 15px;font-size:10px}.code-bottom{padding:12px 14px;font-size:9px}.code-bottom>span:last-child{font-size:9px}
+ .phone-owned{padding-block:46px;grid-template-columns:1fr;gap:22px}.phone-note{flex-direction:row;gap:25px}.phone-note>svg{width:62px;height:62px}.phone-note .handwriting{font-size:23px}.phone-owned h2{font-size:31px}.phone-owned p{font-size:14px}
+ .support-strip{padding-block:27px 36px}.support-strip .button{font-size:12px;min-height:47px}.support-strip h3{font-size:18px}
+ .download-phone{min-height:335px}.download-workshop{width:650px}.download-phone>.handwriting{margin-top:290px;font-size:22px}
+}

@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 640" role="img" aria-labelledby="title description">
-  <title id="title">Android phone frame</title>
-  <desc id="description">A clean tall Android phone frame with a centered camera cutout.</desc>
-  <path d="M35 8h230c18 0 27 9 27 27v570c0 18-9 27-27 27H35c-18 0-27-9-27-27V35C8 17 17 8 35 8Z" fill="#202522" stroke="#303532" stroke-width="8"/>
-  <path d="M33 18h234c9 0 15 6 15 15v574c0 9-6 15-15 15H33c-9 0-15-6-15-15V33c0-9 6-15 15-15Z" fill="#F7F9F6"/>
-  <circle cx="150" cy="34" r="8" fill="#202522"/>
-  <path d="M292 196h5v64h-5M3 174h5v48H3M3 235h5v76H3" fill="#303532"/>
-</svg>

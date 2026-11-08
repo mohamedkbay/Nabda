@@ -1,0 +1,8 @@
+{
+  "name": "nabda-static-website",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Static export only; the API and dashboard deploy independently to Cloudflare.",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": { "build": "node ../../scripts/build-netlify.mjs" }
+}

@@ -1,0 +1,12 @@
+[build]
+  base = "deployment/netlify"
+  command = "node ../../scripts/build-netlify.mjs"
+  publish = "../../deploy-build/netlify"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PYTHON_VERSION = "3.13"
+
+# Set NABDA_API_ORIGIN and NABDA_WEBSITE_ORIGIN in Netlify's build environment.
+# They are public HTTPS origins. Never add GITHUB_CLIENT_SECRET to Netlify.
+# _headers and _redirects are generated beside index.html by the export script.

@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1794161783348,
+      "tag": "0000_windy_sage",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794174068955,
+      "tag": "0001_same_william_stryker",
+      "breakpoints": true
+    }
+  ]
+}

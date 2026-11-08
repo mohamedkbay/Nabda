@@ -1,0 +1,54 @@
+{
+  "applicationId": "ly.nabda.mobile",
+  "name": "نبضة",
+  "versionName": "0.2.0",
+  "versionCode": 200,
+  "minimumAndroid": "8.0 (API 26)",
+  "compileSdk": 36,
+  "targetSdk": 35,
+  "artifact": "Nabda-Android-0.2.0.apk",
+  "artifactBytes": 1280995,
+  "sha256": "0d358d873b68b404a0cafe8bd7624b89c634e5a88679cbcbac02323eb44be5ea",
+  "signing": "Android debug test certificate; not a production release key",
+  "signingCertificateSha256": "5b7034f1c974e27bdbfee76ffc770261ed8ff226e7af1af93f9dbfd7036c7f8f",
+  "hostedArtifact": null,
+  "compatibilityReview": {
+    "date": "2026-11-08",
+    "hostedHealthWithAndroidUserAgent": "Historical hosted health check; independent external hosting is pending account setup.",
+    "hostedArtifactSha256": null,
+    "apkZipIntegrity": "passed",
+    "apkSignatureVerification": "passed, debug certificate",
+    "deviceProtocolSourceReview": "pair, poll, acknowledged/rejected handoff, and part events match current API",
+    "newSourceChanges": false,
+    "newTestsRequired": false,
+    "physicalPhoneSandbox": "not exercised"
+  },
+  "validation": {
+    "assembleDebug": "passed",
+    "lintDebug": "passed with non-blocking warnings",
+    "sqliteProtocolUnitTests": "10 passed, 0 failed",
+    "pureJvmPolicyAssertions": "21 passed",
+    "physicalDevice": "not tested",
+    "realSms": "not sent"
+  },
+  "thirdPartyNoticePackaging": {
+    "date": "2026-11-08",
+    "reason": "Include exact tagged dependency license and attribution texts for public distribution.",
+    "asset": "assets/third-party-notices.txt",
+    "publicNotice": "THIRD-PARTY-NOTICES.txt",
+    "noticeBytes": 30113,
+    "noticeSha256": "46305e4363bb50ee6f89975236190368b26ae0db2a30f89a537cd9c43c35bef4",
+    "dependencies": [
+      "com.journeyapps:zxing-android-embedded:4.3.0",
+      "com.google.zxing:core:3.4.1"
+    ],
+    "assembleDebug": "passed offline",
+    "apkZipIntegrity": "passed",
+    "apkSignatureVerification": "passed, same Android debug certificate",
+    "functionalJavaSourceChanges": false,
+    "manifestUnchanged": true,
+    "dexComparison": "Three DEX files byte-identical. classes3.dex has compiler metadata/pool offset differences; all SDK dexdump symbolic instructions, registers, control flow and locals match after normalizing offsets and pool/source indices.",
+    "realSms": "not sent"
+  },
+  "downloadPath": "/downloads/Nabda-Android-0.2.0.apk"
+}

@@ -1,0 +1,4 @@
+# Local Wrangler development only. Copy to ignored .dev.vars.
+# Production secret: npm run secret:cloudflare (Wrangler prompts privately).
+# The public Client ID goes in .env.deploy, not here.
+GITHUB_CLIENT_SECRET=REPLACE_WITH_YOUR_LOCAL_GITHUB_OAUTH_CLIENT_SECRET

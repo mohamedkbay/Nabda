@@ -1,22 +1,64 @@
-node_modules/
-dist/
-desktop-dist/
-release/
-coverage/
-.vercel/
-.vercel-static/
-.env
-.env.*
-!.env.example
-*.log
-.DS_Store
-public/pricing 2.html
-postgres-data/
-redis-data/
+# Dependencies
+/node_modules/
+/node_modules
+/.pnp
+.pnp.*
+# Keep authored Yarn tooling if the project adopts Yarn.
+/.yarn/*
+!/.yarn/patches/
+!/.yarn/plugins/
+!/.yarn/releases/
+!/.yarn/versions/
 
-# Native Android agent build state (the source remains tracked).
-android-agent/.gradle/
-android-agent/local.properties
-android-agent/**/build/
-android-agent/.idea/
-android-agent/*.iml
+# Generated builds and framework state
+/dist/
+/.next/
+/.vinext/
+/out/
+/deploy-build/
+/wrangler.nabda.json
+next-env.d.ts
+*.tsbuildinfo
+
+# Test output
+/coverage/
+__pycache__/
+*.pyc
+
+# Package-manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local environment and keys
+.env*
+!.env.example
+!.env.deploy.example
+.dev.vars*
+!.dev.vars.example
+*.pem
+
+# Checkout-local tool state
+/.wrangler/
+/.netlify/
+/deployment/netlify/.netlify/
+/.sites-runtime/
+/.openai/
+
+# Workspace scaffolding and publication archives
+/.agents/
+/.codex/
+/outputs/
+/work/
+
+# OS metadata
+.DS_Store
+
+# Android tool state and intermediate builds
+/android/.gradle/
+/android/.tooling/
+/android/local.properties
+/android/app/build/
+/android/build/
+/android/.kotlin/

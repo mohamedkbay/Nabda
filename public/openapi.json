@@ -1,0 +1,2586 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nabda — phone-owned SMS API",
+    "version": "0.2.0",
+    "description": "Nabda delivers a command to your own Android phone; the phone stores its queue and sends through your SIM. This specification describes the implemented free-edition control plane. It does not offer a carrier transport service, webhook delivery endpoint, push configuration API or bulk/campaign endpoint. A 202 response means accepted, not sent or delivered. Platform quotas differ from Android throughput and SIM costs. Bodies are limited to 131,072 bytes. Management routes use a verified GitHub sign-in and a Nabda browser session; third-party apps and phones use different Bearer credentials."
+  },
+  "servers": [
+    {
+      "url": "https://api.example.invalid",
+      "description": "Independent Nabda API on Cloudflare Workers"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Messages",
+      "description": "Server-to-server application API. Keep application secrets out of frontend bundles."
+    },
+    {
+      "name": "Android device",
+      "description": "Protocol for the paired phone and its durable SQLite queue."
+    },
+    {
+      "name": "Account management",
+      "description": "Dashboard endpoints authenticated by a verified Nabda browser session on the API origin. Not accessible with an application API key."
+    },
+    {
+      "name": "Service"
+    }
+  ],
+  "security": [
+    {
+      "ApplicationKey": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "summary": "Check the control-plane process",
+        "description": "A successful response does not prove a phone is connected or an SMS was delivered.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Control plane is responding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_health"
+      }
+    },
+    "/v1/messages": {
+      "post": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Accept one message command for a linked phone",
+        "security": [
+          {
+            "ApplicationKey": []
+          }
+        ],
+        "description": "Returns 202 only after durable cloud acceptance. The phone owns execution after handoff. Temporary recipient/text storage is purged after successful ACK. Sending is asynchronous; this response is not a send or delivery confirmation. At most 1,000 new commands/workspace/UTC day and 500 pending handoffs. No carrier cost is included. Use sandbox=true for tests.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128,
+              "pattern": "^[\\x21-\\x7e]{8,128}$"
+            },
+            "description": "Stable key scoped to the workspace and operation, including across API-key rotation. Same normalized payload returns the same resource; changed payload returns 409. Retries do not resubmit SMS."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durably accepted, or the same resource returned for an idempotent retry. Current status may have advanced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in this account or phone.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting request or resource state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 131,072 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request fields are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Workspace resource allowance reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_v1_messages"
+      }
+    },
+    "/v1/messages/{id}": {
+      "get": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Read message metadata and phone-reported outcome",
+        "security": [
+          {
+            "ApplicationKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Resource ID returned by Nabda; it must belong to the current workspace."
+          }
+        ],
+        "description": "Returns only this workspace's message. It does not return the SMS text or recipient; those belong to the phone after handoff.",
+        "responses": {
+          "200": {
+            "description": "Message metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in this account or phone.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_v1_messages_by_id"
+      }
+    },
+    "/v1/messages/{id}/cancellations": {
+      "post": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Cancel before handoff or ask the phone to cancel",
+        "security": [
+          {
+            "ApplicationKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Resource ID returned by Nabda; it must belong to the current workspace."
+          }
+        ],
+        "description": "Before ACK, cancellation atomically prevents phone authorization. After handoff, cancellation_requested means a command is waiting for the phone; it is not a guarantee that an already submitting SMS can be stopped. Sent SMS cannot be recalled.",
+        "responses": {
+          "200": {
+            "description": "Cancellation result or request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cancellation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in this account or phone.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting request or resource state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_v1_messages_by_id_cancellations"
+      }
+    },
+    "/v1/usage": {
+      "get": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Read workspace command usage",
+        "security": [
+          {
+            "ApplicationKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Platform counters, separate from the SIM/carrier bill.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_v1_usage"
+      }
+    },
+    "/v1/device/pair": {
+      "post": {
+        "tags": [
+          "Android device"
+        ],
+        "summary": "Consume a one-time pairing token",
+        "security": [],
+        "description": "The token is created by a signed-in workspace owner. Pairing consumes it atomically and returns an independently scoped phone credential. A used/expired token cannot pair another device.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevicePair"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Phone linked; protect the returned credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevicePaired"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 131,072 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request fields are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_v1_device_pair"
+      }
+    },
+    "/v1/device/poll": {
+      "post": {
+        "tags": [
+          "Android device"
+        ],
+        "summary": "Fetch commands to stage in the phone database",
+        "security": [
+          {
+            "DeviceToken": []
+          }
+        ],
+        "description": "An active phone receives at most 25 unacknowledged commands. Commands may repeat. Persist each command transactionally before ACK; polling does not authorize SMS. Cancel commands are prioritized. Expired unhanded commands are marked expired and their payloads removed during polling. Baseline idle interval is 60 seconds; FCM push is not configured by this API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevicePoll"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pending durable handoffs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PollResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 131,072 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request fields are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_v1_device_poll"
+      }
+    },
+    "/v1/device/ack": {
+      "post": {
+        "tags": [
+          "Android device"
+        ],
+        "summary": "Acknowledge durable storage and request execution handoff",
+        "security": [
+          {
+            "DeviceToken": []
+          }
+        ],
+        "description": "Call only after SQLite commit on the phone. Only IDs returned in acknowledged may become execution-eligible. Cancellation/expiry between poll and ACK rejects that send. A legitimate earlier ACK repeats idempotently if its response was lost. Handoff clears cloud recipient/text. Acknowledging a cancellation command records receipt, not successful cancellation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceAck"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Explicit per-command approval or rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AckResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 131,072 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request fields are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_v1_device_ack"
+      }
+    },
+    "/v1/device/events": {
+      "post": {
+        "tags": [
+          "Android device"
+        ],
+        "summary": "Upload durable execution events",
+        "security": [
+          {
+            "DeviceToken": []
+          }
+        ],
+        "description": "The message must already be handed off. Retransmit the same event ID and contents until it appears in accepted. Conflicting reuse, including within a batch, is rejected. Status is merged monotonically; stale queued events cannot regress sent/delivered. Late results may resolve outcome_unknown. The endpoint reports device claims, not independently verified carrier delivery.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventBatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Events stored or already stored identically.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in this account or phone.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting request or resource state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 131,072 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request fields are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_v1_device_events"
+      }
+    },
+    "/api/account": {
+      "get": {
+        "tags": [
+          "Account management"
+        ],
+        "summary": "Read or initialize the signed-in owner's workspace",
+        "security": [
+          {
+            "NabdaBrowserSession": []
+          }
+        ],
+        "description": "Requires a verified Nabda browser session established through /auth/github. The browser dashboard and session remain on the API origin; mutating requests must be same-origin. An application key or caller-supplied identity header cannot impersonate an account.",
+        "responses": {
+          "200": {
+            "description": "Workspace, current user, phones, nonsecret key summaries and usage.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_account",
+        "x-nabda-browser-session-required": true
+      }
+    },
+    "/api/keys": {
+      "post": {
+        "tags": [
+          "Account management"
+        ],
+        "summary": "Create an application API key",
+        "security": [
+          {
+            "NabdaBrowserSession": []
+          }
+        ],
+        "description": "Requires a verified Nabda browser session established through /auth/github. The browser dashboard and session remain on the API origin; mutating requests must be same-origin. An application key or caller-supplied identity header cannot impersonate an account.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "New secret, shown only once. At most 20 active application keys/workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-origin management mutation rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 131,072 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request fields are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Workspace resource allowance reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_keys",
+        "x-nabda-browser-session-required": true
+      }
+    },
+    "/api/keys/{id}": {
+      "delete": {
+        "tags": [
+          "Account management"
+        ],
+        "summary": "Revoke an application API key",
+        "security": [
+          {
+            "NabdaBrowserSession": []
+          }
+        ],
+        "description": "Requires a verified Nabda browser session established through /auth/github. The browser dashboard and session remain on the API origin; mutating requests must be same-origin. An application key or caller-supplied identity header cannot impersonate an account.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Resource ID returned by Nabda; it must belong to the current workspace."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Key revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revoked": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "revoked"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-origin management mutation rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in this account or phone.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "delete_api_keys_by_id",
+        "x-nabda-browser-session-required": true
+      }
+    },
+    "/api/pairings": {
+      "post": {
+        "tags": [
+          "Account management"
+        ],
+        "summary": "Create a private QR/deep-link pairing token",
+        "security": [
+          {
+            "NabdaBrowserSession": []
+          }
+        ],
+        "description": "Requires a verified Nabda browser session established through /auth/github. The browser dashboard and session remain on the API origin; mutating requests must be same-origin. An application key or caller-supplied identity header cannot impersonate an account.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": []
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Single-use token lasting ten minutes. At most five simultaneously valid codes/workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-origin management mutation rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 131,072 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request fields are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Workspace resource allowance reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_pairings",
+        "x-nabda-browser-session-required": true
+      }
+    },
+    "/api/devices": {
+      "get": {
+        "tags": [
+          "Account management"
+        ],
+        "summary": "List workspace phones",
+        "security": [
+          {
+            "NabdaBrowserSession": []
+          }
+        ],
+        "description": "Requires a verified Nabda browser session established through /auth/github. The browser dashboard and session remain on the API origin; mutating requests must be same-origin. An application key or caller-supplied identity header cannot impersonate an account.",
+        "responses": {
+          "200": {
+            "description": "Phones and their readiness metadata; no token hashes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "devices": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Device"
+                      }
+                    }
+                  },
+                  "required": [
+                    "devices"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_devices",
+        "x-nabda-browser-session-required": true
+      }
+    },
+    "/api/devices/{id}": {
+      "delete": {
+        "tags": [
+          "Account management"
+        ],
+        "summary": "Revoke a phone's cloud credential",
+        "security": [
+          {
+            "NabdaBrowserSession": []
+          }
+        ],
+        "description": "Requires a verified Nabda browser session established through /auth/github. The browser dashboard and session remain on the API origin; mutating requests must be same-origin. An application key or caller-supplied identity header cannot impersonate an account.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Resource ID returned by Nabda; it must belong to the current workspace."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Phone credential revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revoked": {
+                      "const": true
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "revoked",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-origin management mutation rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in this account or phone.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "delete_api_devices_by_id",
+        "x-nabda-browser-session-required": true
+      }
+    },
+    "/api/messages": {
+      "get": {
+        "tags": [
+          "Account management"
+        ],
+        "summary": "Read a page of workspace message metadata",
+        "security": [
+          {
+            "NabdaBrowserSession": []
+          }
+        ],
+        "description": "Requires a verified Nabda browser session established through /auth/github. The browser dashboard and session remain on the API origin; mutating requests must be same-origin. An application key or caller-supplied identity header cannot impersonate an account.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Opaque next_cursor from the previous page."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stable creation-order page plus independent whole-workspace status counts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request fields are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get_api_messages",
+        "x-nabda-browser-session-required": true
+      }
+    },
+    "/api/messages/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Account management"
+        ],
+        "summary": "Cancel from the dashboard",
+        "security": [
+          {
+            "NabdaBrowserSession": []
+          }
+        ],
+        "description": "Requires a verified Nabda browser session established through /auth/github. The browser dashboard and session remain on the API origin; mutating requests must be same-origin. An application key or caller-supplied identity header cannot impersonate an account.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Resource ID returned by Nabda; it must belong to the current workspace."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Same handoff-aware cancellation semantics as the application API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cancellation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-origin management mutation rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in this account or phone.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting request or resource state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error. Never contains SQL, credentials or message contents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account database is not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post_api_messages_by_id_cancel",
+        "x-nabda-browser-session-required": true
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApplicationKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "nb_app_<64 hexadecimal characters>",
+        "description": "Workspace application key, issued once by the dashboard and stored as a SHA-256 verifier. Cannot poll or impersonate a phone."
+      },
+      "DeviceToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "nb_device_<64 hexadecimal characters>",
+        "description": "Phone-only token returned by pairing. Cannot create messages or manage a workspace."
+      },
+      "NabdaBrowserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-nabda_session",
+        "description": "Opaque HttpOnly, Secure, SameSite=Lax Nabda session after top-level GitHub OAuth sign-in at /auth/github. The server verifies state, browser binding and S256 PKCE. The dashboard stays on the API origin. POST /auth/logout revokes this browser session. API keys and device tokens do not authenticate management calls; caller-provided identity headers are ignored."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Stable machine-readable error code."
+              },
+              "message": {
+                "type": "string",
+                "description": "A readable explanation and recovery hint."
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "const": "ok"
+          },
+          "mode": {
+            "const": "phone-owned"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "mode",
+          "version"
+        ]
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "sent and delivered are reports from the phone, not independent carrier attestations. Missing reports do not establish failure.",
+            "enum": [
+              "accepted",
+              "on_device",
+              "queued",
+              "processing",
+              "sent",
+              "delivered",
+              "failed",
+              "cancelled",
+              "expired",
+              "outcome_unknown"
+            ]
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "sandbox": {
+            "type": "boolean",
+            "description": "A sandbox command must never invoke the phone's SmsManager."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "send_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "handed_off_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "cancellation_requested": {
+            "type": "boolean",
+            "description": "The phone may not have received or completed this request yet."
+          },
+          "parts_total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 100
+          },
+          "parts_sent": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100
+          },
+          "parts_delivered": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100
+          },
+          "failure_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "device_id",
+          "sandbox",
+          "created_at",
+          "updated_at",
+          "send_at",
+          "expires_at",
+          "handed_off_at",
+          "cancellation_requested",
+          "parts_total",
+          "parts_sent",
+          "parts_delivered",
+          "failure_code"
+        ]
+      },
+      "MessageCreate": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "description": "An active phone in the authenticated workspace.",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "to": {
+            "type": "string",
+            "description": "International E.164 or Libyan mobile local form. Arabic digits, spaces, parentheses and ASCII hyphens are normalized.",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "content": {
+            "type": "string",
+            "description": "Preserved exactly, including whitespace. Must contain a non-whitespace character. The implementation checks at most 4,000 UTF-16 code units; emoji may consume two units.",
+            "minLength": 1,
+            "maxLength": 4000,
+            "x-max-utf16-code-units": 4000
+          },
+          "sandbox": {
+            "type": "boolean",
+            "default": false,
+            "description": "Set true for protocol testing without real SMS. This flag is durably included in the phone command."
+          },
+          "send_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional start time, including timezone. At most 30 days ahead; a past time becomes immediately eligible. Scheduling is executed on the phone."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Latest permitted start time, including timezone. Must be later than send_at and now, within 31 days. Defaults to 24 hours after the later of now or send_at. This is not a recall deadline for an already submitted SMS."
+          }
+        },
+        "required": [
+          "device_id",
+          "to",
+          "content"
+        ]
+      },
+      "Cancellation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "on_device",
+              "queued",
+              "processing",
+              "sent",
+              "delivered",
+              "failed",
+              "cancelled",
+              "expired",
+              "outcome_unknown"
+            ]
+          },
+          "cancellation_requested": {
+            "const": true
+          },
+          "guaranteed": {
+            "type": "boolean",
+            "description": "True only when cancelled before durable phone handoff. After handoff, wait for the phone's result."
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "cancellation_requested",
+          "guaranteed"
+        ]
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "day_utc": {
+            "type": "string",
+            "format": "date"
+          },
+          "accepted_commands": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "New accepted platform commands today. This is not a count of successfully transmitted SMS."
+          },
+          "reported_sent_messages": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Messages created today with sent/delivered status reported by the phone."
+          },
+          "reported_sent_parts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Sum of reported sent parts for those messages."
+          },
+          "pending_handoffs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Unacknowledged, unexpired cloud commands."
+          },
+          "active_devices": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "carrier_cost": {
+            "type": "null",
+            "description": "The API cannot infer the mobile carrier's bill."
+          },
+          "source": {
+            "const": "device_reported"
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "new_messages_per_day": {
+                "const": 1000
+              },
+              "pending_handoffs": {
+                "const": 500
+              }
+            },
+            "required": [
+              "new_messages_per_day",
+              "pending_handoffs"
+            ]
+          }
+        },
+        "required": [
+          "day_utc",
+          "accepted_commands",
+          "reported_sent_messages",
+          "reported_sent_parts",
+          "pending_handoffs",
+          "active_devices",
+          "carrier_cost",
+          "source",
+          "limits"
+        ]
+      },
+      "Device": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "permission_granted": {
+            "type": "boolean"
+          },
+          "sim_selected": {
+            "type": "boolean"
+          },
+          "app_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "android_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_seen_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "connected": {
+            "type": "boolean",
+            "description": "Active credential with a heartbeat younger than 180 seconds. Connected does not by itself establish SMS readiness."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "ready",
+          "permission_granted",
+          "sim_selected",
+          "app_version",
+          "android_version",
+          "last_seen_at",
+          "created_at",
+          "connected"
+        ]
+      },
+      "KeySummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Display prefix only; the secret cannot be recovered."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "created_at",
+          "revoked_at"
+        ]
+      },
+      "KeyCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Shown once. Keep it on your server; do not embed it in browser code.",
+            "pattern": "^nb_app_[a-f0-9]{64}$",
+            "writeOnly": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "key",
+          "created_at"
+        ]
+      },
+      "PairingCreated": {
+        "type": "object",
+        "properties": {
+          "pairing_token": {
+            "type": "string",
+            "description": "Single-use token valid for ten minutes; keep the QR private.",
+            "pattern": "^nb_pair_[a-f0-9]{64}$"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "qr": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "const": 1
+              },
+              "server_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "pairing_token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "server_url",
+              "pairing_token"
+            ]
+          },
+          "pairing_url": {
+            "type": "string",
+            "description": "Android deep link using nabda://pair?server=...&token=...",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "pairing_token",
+          "expires_at",
+          "qr",
+          "pairing_url"
+        ]
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "organization": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "created_at"
+            ]
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              }
+            },
+            "required": [
+              "name",
+              "email"
+            ]
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Device"
+            }
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KeySummary"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization",
+          "user",
+          "devices",
+          "keys",
+          "usage",
+          "version"
+        ]
+      },
+      "MessagePage": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Counts across all messages in this workspace, not just this page."
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque continuation cursor, or null. It preserves creation order, not a snapshot of mutable message status."
+          }
+        },
+        "required": [
+          "messages",
+          "counts",
+          "as_of",
+          "next_cursor"
+        ]
+      },
+      "DevicePair": {
+        "type": "object",
+        "properties": {
+          "pairing_token": {
+            "type": "string",
+            "pattern": "^nb_pair_[a-f0-9]{64}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "app_version": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "android_version": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "pairing_token"
+        ]
+      },
+      "DevicePaired": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "string"
+          },
+          "device_token": {
+            "type": "string",
+            "description": "Shown once; protect with Android Keystore. This token cannot create application messages.",
+            "pattern": "^nb_device_[a-f0-9]{64}$"
+          },
+          "server_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "poll_after_ms": {
+            "const": 60000
+          }
+        },
+        "required": [
+          "device_id",
+          "device_token",
+          "server_url",
+          "poll_after_ms"
+        ]
+      },
+      "DevicePoll": {
+        "type": "object",
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "permission_granted": {
+            "type": "boolean"
+          },
+          "sim_selected": {
+            "type": "boolean"
+          },
+          "app_version": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "android_version": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "ready",
+          "permission_granted",
+          "sim_selected"
+        ]
+      },
+      "Command": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message.send",
+              "message.cancel"
+            ]
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              },
+              "send_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "sandbox": {
+                "type": "boolean"
+              }
+            },
+            "required": [],
+            "description": "message.send includes all fields; message.cancel uses an empty object. The phone must durably stage this before ACK and must not submit SMS until ACK approves the command ID."
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "message_id",
+          "payload"
+        ]
+      },
+      "PollResult": {
+        "type": "object",
+        "properties": {
+          "commands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Command"
+            },
+            "maxItems": 25
+          },
+          "poll_after_ms": {
+            "const": 60000
+          },
+          "server_time": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "commands",
+          "poll_after_ms",
+          "server_time"
+        ]
+      },
+      "DeviceAck": {
+        "type": "object",
+        "properties": {
+          "command_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "minItems": 1,
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "command_ids"
+        ]
+      },
+      "AckResult": {
+        "type": "object",
+        "properties": {
+          "acknowledged": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rejected": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "cancelled",
+                    "expired",
+                    "not_found"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "reason"
+              ]
+            }
+          }
+        },
+        "required": [
+          "acknowledged",
+          "rejected"
+        ]
+      },
+      "DeviceEvent": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "description": "Stable per-device ID. Retries must use identical event contents.",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "processing",
+              "sent",
+              "delivered",
+              "failed",
+              "cancelled",
+              "expired",
+              "outcome_unknown"
+            ]
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "parts_total": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "When provided, must be 1–100 and cannot change after first reported.",
+            "maximum": 100
+          },
+          "parts_sent": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Requires parts_total and must not exceed it.",
+            "maximum": 100
+          },
+          "parts_delivered": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Requires parts_total and parts_sent; cannot exceed parts_sent.",
+            "maximum": 100
+          },
+          "failure_code": {
+            "type": "string",
+            "description": "Symbolic diagnostic only. Do not include SMS text or recipient data.",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_.:-]+$"
+          }
+        },
+        "required": [
+          "event_id",
+          "message_id",
+          "status",
+          "occurred_at"
+        ],
+        "description": "sent requires parts_sent=parts_total; delivered requires all three part counters equal. A missing delivery report is not proof of failure. outcome_unknown must not trigger blind resubmission."
+      },
+      "EventBatch": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceEvent"
+            },
+            "minItems": 1,
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "events"
+        ]
+      },
+      "EventReceipt": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Only these events may be removed from the phone's durable outbound-event queue."
+          }
+        },
+        "required": [
+          "accepted"
+        ]
+      }
+    }
+  },
+  "x-privacy": {
+    "cloud_payload": "Recipient and content are temporary command data until successful durable-phone ACK; they are then permanently removed from the cloud command. Message metadata and hashes remain.",
+    "expiry_cleanup": "Expired commands are cleaned when the phone polls. This edition does not claim an exact scheduled deletion deadline.",
+    "phone_owned": "SQLite owns recipient, body, queue, attempt and part history. No automatic lost-phone backup/restore is implemented."
+  },
+  "x-transport": {
+    "baseline_poll_interval_ms": 60000,
+    "push_configured": false,
+    "webhook_delivery_implemented": false,
+    "outcome_source": "device_reported"
+  },
+  "x-browser-authentication": {
+    "provider": "GitHub",
+    "sign_in": "/auth/github",
+    "callback": "/auth/github/callback",
+    "sign_out": {
+      "method": "POST",
+      "path": "/auth/logout"
+    },
+    "website_separate_from_api": true
+  }
+}

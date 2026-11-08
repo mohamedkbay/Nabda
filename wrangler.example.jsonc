@@ -1,0 +1,27 @@
+// Reference only. scripts/cloudflare-config.mjs writes ignored
+// wrangler.nabda.json from your .env.deploy values. Do not deploy placeholders.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "nabda-api",
+  "main": "worker/cloudflare.ts",
+  "compatibility_date": "2026-05-15",
+  "workers_dev": true,
+  "send_metrics": false,
+  "assets": {
+    "directory": "./deploy-build/cloudflare-assets",
+    "binding": "ASSETS",
+    "run_worker_first": ["/", "/dashboard*", "/auth/*", "/api/*", "/v1/*", "/health", "/docs*", "/download", "/help", "/support", "/privacy", "/terms"]
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "nabda-api",
+    "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_UUID",
+    "migrations_dir": "./drizzle"
+  }],
+  "vars": {
+    "API_ORIGIN": "https://YOUR_WORKER.YOUR_SUBDOMAIN.workers.dev",
+    "WEBSITE_ORIGIN": "https://YOUR_SITE.netlify.app",
+    "GITHUB_CLIENT_ID": "REPLACE_WITH_YOUR_GITHUB_OAUTH_CLIENT_ID"
+  },
+  "observability": { "enabled": false }
+}

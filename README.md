@@ -1,276 +1,141 @@
-# Nabda API
+# Nabda
 
-Nabda is a self-hosted, multi-tenant messaging API. A company connects its own Android phone and SIM, queues expected service messages through an API, and lets the phone send them while it is connected to the same trusted Wi-Fi network.
+An open-source SMS API that uses your own Android phone and SIM. Your application submits a request, Nabda hands it to your phone, and Android sends the SMS through the SIM you selected.
 
-The platform is free. The standalone Windows Controller accepts up to **10,000 message operations per local calendar day**; the multi-tenant API keeps its separately documented plan quota. SIM credit, carrier fees, phones, and infrastructure remain the operator's responsibility.
+The service is free to use. Your carrier's SMS charges still apply. Optional support does not change your access or unlock features.
 
-## What is included
+[Website and documentation](https://nabda-phone-api.netlify.app/) · [Account dashboard](https://nabda-api.mohamed-kbay.workers.dev/dashboard) · [API health](https://nabda-api.mohamed-kbay.workers.dev/health) · [OpenAPI](https://nabda-phone-api.netlify.app/openapi.json)
 
-- TypeScript and Fastify API
-- PostgreSQL as the durable source of truth
-- Redis and BullMQ for background jobs and rate limits
-- Native lightweight Android agent written in Java
-- API keys and device tokens stored as keyed hashes
-- Organization-level tenant isolation
-- Idempotent message creation
-- Contacts, consent references, opt-outs, and duplicate protection
-- Queue recovery, message expiry, retention cleanup, audit logs, and signed webhooks
-- Mock and Android provider boundaries
-- English product site, Help Center, OpenAPI file, and Postman collection
-- One-click Windows background controller with a browser dashboard and local SQLite storage
+The public website and API are deployed independently on Netlify and Cloudflare. GitHub sign-in and account loading have been verified on the hosted deployment; physical-phone and carrier delivery remain unverified. To host your own installation, follow [the deployment guide](docs/DEPLOYMENT.md).
 
-## Easiest option: Windows Controller
+This repository contains the API, account dashboard, illustrated website, clients and native Android app. Version **0.2.0** is an early release: the supplied APK is debug-signed, and physical-device and carrier testing remains necessary before relying on it for production traffic.
 
-For a single Windows computer and one Android phone, install **نبضة**. It runs in the system tray, stores the queue in a local SQLite database, and opens its controls in Chrome, Edge, or your default browser. It does not require Docker, PostgreSQL, or Redis.
+## How a message moves
 
-1. Install `Nabda-Controller-0.1.0-Setup-x64.exe`.
-2. Open Nabda from the Start menu. The browser dashboard opens at `http://127.0.0.1:3210`; you can also enter that address directly on the same computer.
-3. In **Device**, create a two-minute pairing QR. In **نبضة** on Android, tap **Scan controller QR**. The code works once and never contains the permanent device key.
-4. Allow contact access when Android asks after pairing; names and numbers are copied directly to Windows. You can repeat this at any time with **Sync phone contacts** in the Android app. Existing numbers are skipped, and phone contacts are not automatically marked as campaign-approved.
-5. Tap **Start connection** on Android. On a Dual-SIM phone, choose the exact sending SIM shown as `SIM 1 — carrier` or `SIM 2 — carrier`. For live SMS, type `ENABLE_LIVE_SMS` in Windows and complete the separate Android confirmation.
-6. You can also add one contact manually or import CSV, TXT, or VCF. The file importer supports `Name,Emails,PhoneNumbers` and expands semicolon-separated numbers into separate contacts.
-7. Queue one message or create a controlled contact campaign in the browser.
+1. Sign in with GitHub, then create a one-time phone pairing code in the dashboard.
+2. Scan it with Nabda Android and choose **Connect in test mode**.
+3. Create an application key and submit a request with `sandbox: true`.
+4. Android saves the command in SQLite before acknowledging it. Only an approved acknowledgement releases the command for local execution.
+5. The API removes the command's text and recipient after handoff. The phone keeps the queue, attempts and SMS-part results, then synchronizes status updates.
 
-Closing the browser does not stop Nabda. The controller and queue continue in the Windows background. Click the tray icon to reopen the dashboard, enable **Start with Windows** if wanted, or use **Lock carrier sending** for an immediate stop.
+The phone can continue received work while its Internet connection is unavailable. New requests still need to reach the phone. A `202` response means a command was saved; it does not mean an SMS was sent or delivered.
 
-The Windows dashboard is restricted to the same computer. It can switch between English and Arabic (RTL) and remembers the local choice. Messages and batches share one workspace: choose every eligible contact, filter names by first letter, or select individual people. A batch can enter the queue immediately or be spread across a from/to window at 1-600 messages per hour. Only `/health`, the one-time pairing exchange, and the authenticated `/v1/device/*` phone protocol are reachable from the private LAN. Pairing expires after two minutes and is consumed atomically. Device tokens and message leases are stored only as SHA-256 hashes.
-
-Build the unsigned internal Windows installer locally with:
-
-```bash
-npm ci
-npm run dist:win
-```
-
-The installer is written to `release/`. Windows may display an unknown-publisher warning until a code-signing certificate is configured.
-
-## Architecture
-
-```text
-Your application
-      │  API on the trusted LAN
-      ▼
-Nabda API ───── PostgreSQL
-      │              │
-      └── Redis ─────┴── queue, limits, events and audit
-
-Android phone on the same Wi-Fi
-      │ heartbeat → claim one → begin → report result
-      └───────────────────────────────────────────────┘
-```
-
-The phone never downloads the whole campaign. It claims one message, asks the server for final send authorization, sends it through Android, reports the result, and immediately requests the next item. If Wi-Fi disappears, the phone waits and resumes automatically.
-
-## Current Windows Controller limits
-
-| Limit | Value |
-| --- | ---: |
-| Daily accepted messages | 10,000 |
-| Dispatch rate | 10 messages/minute |
-| Active contacts | 10,000 |
-| Android devices | 1 per organization |
-| API keys | 3 per organization |
-| Webhooks | 2 per organization |
-| Sensitive-data retention | 30 days |
-
-At 10 messages per minute, 10,000 messages take about 16 hours 40 minutes. The daily counter resets at the Windows computer's local midnight. The dispatch rate protects the phone, SIM, and queue and remains subject to carrier rules.
-
-## Docker/API deployment requirements
-
-- Docker Desktop with Docker Compose
-- Android 8 or newer for the phone agent
-- Node.js 22+ only when developing outside Docker
-- Java 17 and Android SDK only when rebuilding the APK
-
-## 1. Configure the local server
-
-Copy the example file and add three unique local secrets:
-
-```bash
-cp .env.example .env
-chmod 600 .env
-openssl rand -hex 24
-openssl rand -base64 48
-openssl rand -base64 32
-```
-
-Put the results in `.env` as `POSTGRES_PASSWORD`, `API_KEY_HASH_SECRET`, and `APP_ENCRYPTION_KEY`. The encryption key must decode to exactly 32 bytes. Never commit `.env`.
-
-Start the safe simulation stack:
-
-```bash
-docker compose up --build -d
-```
-
-Start the same-LAN live stack only when ready to connect the company phone:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.live.yml up --build -d
-```
-
-The API listens on port `3000`. PostgreSQL and Redis remain bound to the computer only.
-
-```bash
-curl http://127.0.0.1:3000/health
-curl http://127.0.0.1:3000/health/ready
-```
-
-## 2. Create the API key and phone token
-
-In simulation mode:
-
-```bash
-docker compose run --rm migrate npm run db:free
-docker compose run --rm migrate npm run db:device-agent
-```
-
-In live LAN mode:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.live.yml run --rm migrate npm run db:free
-docker compose -f docker-compose.yml -f docker-compose.live.yml run --rm migrate npm run db:device-agent
-```
-
-Each command prints its raw credential once. Copy it immediately:
-
-- Put the `nbda_live_...` API key only in the application that calls Nabda.
-- Put the `nbda_device_...` token only in the Android agent.
-- Never place either credential in source code, URLs, screenshots, or logs.
-
-Running either command again rotates the matching local credential.
-
-## 3. Install and connect the phone
-
-The verified same-LAN debug APK is:
-
-```text
-android-agent/artifacts/Nabda-Agent-LAN-0.1.0-debug.apk
-```
-
-On its first launch, the live APK immediately asks for the Android SMS and phone-state permissions. Android requires the phone owner to tap **Allow** once; apps cannot grant these permissions to themselves. The choice is retained by Android, while carrier dispatch remains separately controlled from **نبضة** on Windows.
-
-Install it over USB:
-
-```bash
-export ANDROID_SDK_ROOT=/Users/mohamedbay/.android-sdk
-npm run android:install:lan
-```
-
-Keep the phone and computer on the same trusted private Wi-Fi. In the app enter:
-
-```text
-Server URL: http://<computer-private-ip>:3000
-Device token: <nbda_device_... token>
-```
-
-For example, a private address may look like `http://192.168.1.20:3000` or `http://10.0.0.20:3000`.
-
-Then:
-
-1. Check the expected-message confirmation.
-2. Tap **Connect & start**.
-3. Approve the Android SMS permission.
-4. Allow background activity/battery exemption if the phone vendor pauses foreground services.
-
-The LAN debug build accepts cleartext HTTP only for loopback and RFC1918 private addresses. Use a trusted WPA2/WPA3 network. A public deployment must use HTTPS.
-
-## 4. Send through the API
-
-```bash
-curl --request POST http://127.0.0.1:3000/v1/messages \
-  --header 'Authorization: Bearer <NBDA_API_KEY>' \
-  --header 'Idempotency-Key: <unique-16-to-128-character-value>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "to": "+2189XXXXXXXX",
-    "content": "Your order is ready.",
-    "purpose": "service",
-    "consent_confirmed": true,
-    "consent_reference": "order-123-notification",
-    "metadata": {"order_id": "123"}
-  }'
-```
-
-The server chooses the active Android device automatically. `device_id` is optional for a one-phone organization.
-
-```bash
-curl http://127.0.0.1:3000/v1/messages/<MESSAGE_ID> \
-  --header 'Authorization: Bearer <NBDA_API_KEY>'
-
-curl http://127.0.0.1:3000/v1/usage \
-  --header 'Authorization: Bearer <NBDA_API_KEY>'
-```
-
-Message states are `queued`, `sent`, `delivered`, `failed`, `expired`, and `cancelled`.
-
-## API rules
-
-- `Idempotency-Key` is mandatory for every create request.
-- International numbers use E.164. Libyan numbers may be submitted as `09…`, `9…`, `218…`, or `+218…`; Nabda stores the normalized E.164 value.
-- `purpose` is `transactional`, `authentication`, or `service`.
-- Every request stores a traceable `consent_reference`.
-- The MVP accepts one SMS segment: 160 GSM-7 units or 70 UTF-16 units.
-- An active opt-out is checked when the request enters the queue and immediately before phone authorization.
-- The system never retries an uncertain carrier operation after an app/process restart.
-
-Core routes:
-
-| Method | Route | Purpose |
+| Part | Runs on | Stores or serves |
 | --- | --- | --- |
-| `GET` | `/health/ready` | PostgreSQL and Redis readiness |
-| `POST` | `/v1/messages` | Queue an idempotent message |
-| `GET` | `/v1/messages/:id` | Read a tenant-scoped message |
-| `GET` | `/v1/usage` | Read current limits and usage |
-| `GET` | `/v1/queue` | Read queue state |
-| `POST` | `/v1/contacts` | Create or update a contact |
-| `GET` | `/v1/contacts` | List contacts |
-| `DELETE` | `/v1/contacts/:id` | Delete a contact |
-| `POST` | `/v1/opt-outs` | Block a number and cancel queued messages |
+| Public website | Netlify | One illustrated English page, documentation and downloads |
+| API and dashboard | Cloudflare Workers | Authenticated requests, pairing, keys and status |
+| Account database | Cloudflare D1 | Users, hashed credentials, temporary commands and metadata |
+| Android app | Your phone | Durable SQLite queue, full messages, recipients and results |
 
-Documentation is available at `/help`, `/openapi.yaml`, and `/downloads/nabda-api.postman_collection.json`.
+## Run locally
 
-## Testing
+Install **Node.js 22.13+**, npm and **Python 3**. Docker, PostgreSQL and Redis are not needed for this edition.
 
-The normal checks do not send SMS:
+```sh
+git clone https://github.com/mohamedkbay/Nabda.git
+cd Nabda
+npm ci
+npm run build:independent -- --preview
+npm run db:migrate:local -- --preview
+npm run dev:cloudflare -- --preview
+```
 
-```bash
-npm run check
+Open `http://127.0.0.1:8787/dashboard`. Preview mode uses an isolated local D1 database and loopback URLs. It cannot deploy, migrate a remote database or set remote secrets. GitHub sign-in needs a separately configured OAuth App; there is no simulated production login. The deployment guide explains optional local OAuth setup.
+
+In a second terminal, preview the website:
+
+```sh
+python3 -m http.server 5174 --bind 127.0.0.1 --directory deploy-build/netlify
+```
+
+Open `http://127.0.0.1:5174`. This simple file server does not emulate Netlify's redirect and header rules. Android requires HTTPS for pairing, so use a properly configured HTTPS installation for a physical phone.
+
+The shortcuts `npm run build`, `npm run dev` and `npm start` use the independent local preview. Real deployment commands are separate and explicit.
+
+## Deploy your own service
+
+Follow [the Cloudflare and Netlify deployment guide](docs/DEPLOYMENT.md). You need your own Cloudflare, Netlify and GitHub accounts. The guided setup is:
+
+```sh
+bash scripts/setup-hosting.sh
+```
+
+It connects hosting CLIs through your browser, collects public deployment settings and prepares both builds. It does not publish the service. For manual setup, copy [.env.deploy.example](.env.deploy.example) to ignored `.env.deploy` and fill it in as data; do not execute it as a shell script.
+
+The API and dashboard share one origin. GitHub OAuth uses browser-bound state, S256 PKCE and single-use attempts. Nabda issues its own HttpOnly session; provider access tokens are not stored. Keep the GitHub Client Secret in Cloudflare's secret store. It does not belong in Netlify, the browser bundle or Git.
+
+Builds for deployment use `npm run build:independent` **without** `--preview` after real settings are configured. Preview exports are for localhost and must not be uploaded as a production website. Hosting providers have their own free-plan quotas; see [hosting notes](docs/hosting-options.md).
+
+## First API request
+
+On the [hosted dashboard](https://nabda-api.mohamed-kbay.workers.dev/dashboard) or your own HTTPS installation, sign in, pair your phone and create an application key. In Android choose **Connect in test mode**. Sandbox mode does not need a selected SIM or SMS/phone permission and never invokes carrier sending.
+
+Replace the placeholders with your own values. Keep the key on your application's server.
+
+```sh
+curl --request POST 'https://nabda-api.mohamed-kbay.workers.dev/v1/messages' \
+  --header 'Authorization: Bearer YOUR_APPLICATION_KEY' \
+  --header 'Content-Type: application/json' \
+  --header 'Idempotency-Key: first-sandbox-message-001' \
+  --data '{"device_id":"YOUR_DEVICE_ID","to":"RECIPIENT_IN_E164","content":"Hello from Nabda.","sandbox":true}'
+```
+
+Save the returned message ID, then read its status with `GET /v1/messages/{id}` using the same application key. Retry an uncertain request with the **same** idempotency key and payload. Changing the payload with that key returns `409`.
+
+The hosted API base URL is `https://nabda-api.mohamed-kbay.workers.dev`; use your own API origin when self-hosting. The Netlify website is documentation and downloads, not the endpoint for authenticated message requests.
+
+Raw API requests default to carrier mode when `sandbox` is omitted. The provided Node.js, Python and Postman examples explicitly default to sandbox. Real sending also requires the appropriate permissions, an exact SIM selection and an explicit start action in Android.
+
+| Application endpoint | Purpose |
+| --- | --- |
+| `POST /v1/messages` | Accept an idempotent send command |
+| `GET /v1/messages/{id}` | Read metadata and the phone's reported result |
+| `POST /v1/messages/{id}/cancellations` | Request cancellation |
+| `GET /v1/usage` | Read usage and applicable allowances |
+| `GET /health` | Read process version and mode; no credential required |
+
+Application keys and device tokens are separate, random, hashed in D1 and independently revocable. Browser sessions manage accounts, keys and pairing; a caller-supplied identity header cannot authenticate an account.
+
+Read [protocol v1](docs/protocol-v1.md), [the backend guide](docs/backend.md) and [the client guide](public/api-kit/README.md) for fields, management/device routes and result meanings. Each deployed website publishes its generated `openapi.json` and client downloads with its own API origin.
+
+## Limits and delivery behavior
+
+The current shared control plane allows **1,000 new commands per workspace per UTC day**, **500 pending handoffs**, **20 active application keys** and **five valid pairing codes**. Bodies are limited to 128 KiB and SMS text to 4,000 UTF-16 units. These are platform resource allowances. They do not describe carrier pricing or guarantee Android sending speed.
+
+Phone polling is approximately 60 seconds while idle, with longer backoff when offline. Status can progress through `accepted`, `on_device`, `queued`, `processing`, `sent`, `delivered`, `failed`, `expired`, `cancelled` or `outcome_unknown`. Sent and delivered are phone reports; neither proves a person read the text.
+
+If an interrupted modem attempt has no reliable outcome, the app records `outcome_unknown` instead of blindly resending. Cancellation is guaranteed before approved handoff; afterwards the phone must receive and honor it. An already submitted SMS cannot be recalled.
+
+Message text and recipients are removed from the cloud after approved handoff. Unreceived expired content is cleaned when the phone polls, or through cancellation/revocation. There is no scheduled retention job or guaranteed deletion deadline for a phone that never returns. Encrypted phone backup, inbound SMS/contacts sync, public webhooks, push delivery and bulk campaign endpoints are not implemented in this release.
+
+## Android
+
+The app requires **Android 8 / API 26+**. The checked-in APK at `public/downloads/Nabda-Android-0.2.0.apk` is a debug-signed test build. Production signing and store distribution are not configured.
+
+To build from source, install JDK 17+ and Android SDK 36, then run from `android/`:
+
+```sh
+./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest :app:lintDebug
+```
+
+Use `gradlew.bat` on Windows. See [Android setup and behavior](android/README.md) and [third-party notices](THIRD_PARTY_NOTICES.md). The APK accepts the API origin from pairing; it is not tied to a particular hosting hostname.
+
+## Checks
+
+```sh
+npm run typecheck
 npm test
 npm run build
-npm run android:build:simulation
-npm run android:build:lan
-docker compose config --quiet
+npm run check:cloudflare -- --preview
 ```
 
-`android:smoke:simulation` exercises the full lease protocol in simulation. `android:smoke:lan-live` verifies live credentials, heartbeat, queue, and claim, then cancels the message before `/begin`; it never authorizes an SMS.
+The API/authentication tests use isolated local D1 and simulated GitHub responses. They cover tenant isolation, credential scopes, idempotency, durable handoff, cancellation, event deduplication, OAuth/session behavior and deployment configuration. They do not contact a real phone, send SMS or deploy code. GitHub Actions runs these checks without deployment secrets.
 
-## Security notes
+Physical-phone background endurance, permissions, dual-SIM behavior and carrier receipts require separate testing. See [independent verification](docs/VERIFICATION-independent.md) for what has actually been checked.
 
-- API keys and device tokens are stored as keyed HMAC digests.
-- The Android token and pending attempt state are encrypted with Android Keystore.
-- The selected Android subscription is encrypted too. Every live dispatch verifies that it is still active and never falls back silently to another SIM.
-- Tenant identity always comes from the authenticated credential.
-- Phone claims are limited to one message and use short, hashed leases.
-- Opt-out and dispatch share database locks to close race conditions.
-- Worker and Android dispatch paths are separated so a worker cannot steal a phone message.
-- Authorization headers, message content, and credentials are redacted from logs.
-- Webhooks use HMAC signatures and bounded retries.
-- PostgreSQL and Redis are not exposed to the Wi-Fi network.
+## Contributing and license
 
-## Project layout
+Nabda is developed by **Mohamed Bay** and released under the [MIT License](LICENSE). Bundled third-party code and fonts retain their own licenses and notices. [Contribution notes](CONTRIBUTING.md) describe the workflow; report vulnerabilities using [the security policy](SECURITY.md).
 
-```text
-src/             API, domain services, repositories, queue and workers
-migrations/      Ordered PostgreSQL migrations
-android-agent/   Native Android simulation and same-LAN variants
-tests/           API, security, queue and device protocol tests
-public/          Marketing site and Help Center
-docs/            OpenAPI, Postman and architecture decisions
-desktop/         Windows tray controller, browser dashboard and SQLite store
-```
-
-## Responsible operation
-
-Use Nabda only for expected service, authentication, and transaction messages. The operator is responsible for the SIM, carrier agreement, recipient records, message content, opt-outs, staff access, and applicable law. Unsolicited advertising, impersonation, fraud, unauthorized interception, and bypassing the safety controls are prohibited.
-
-See `/legal` for the project notice. This repository is not legal advice.
+I provide the tool; you decide how to use it. You are responsible for your messages, recipients, permissions, account credentials, carrier terms and costs. The software is provided without warranty, and liability is limited only to the extent permitted by applicable law. This does not exclude duties or liability that cannot lawfully be excluded.

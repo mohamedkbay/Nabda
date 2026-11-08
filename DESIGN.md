@@ -1,0 +1,15 @@
+# Nabda illustrated story
+
+The public site is a single static English document. It reads as an illustrated field guide. The user's latest direction removes the header, footer, menus, corner branding, Connect CTA, and all buttons. The product name is Nabda in Latin characters only.
+
+The first viewport is a book cover: centered handwritten product name, a short description of the phone-powered SMS mechanism, and the approved large workshop drawing. The scroll follows the actual sequence: phone setup and pairing, application request, local queue and durable handoff, multipart outcomes, API reference, resource allowances, questions, privacy, permitted use, and a personal support note. Project and API explanations stay visible. Payment details are the user's explicit exception: a native HTML details/summary disclosure keeps LYPay and OnePay hidden until clicked, without JavaScript. Useful downloads and account access are plain inline text links.
+
+Four bespoke raster illustrations carry the story: workshop, pairing, phone as a filing cabinet, and a long letter split into SMS envelopes. They are genuine alpha cutouts, with no paper rectangles, image borders or picture frames. White interior faces and ink hatching remain. Charcoal brush-pen outlines, pale mint and muted peach sit directly on a warm page with a sparse, quiet pen pattern of tiny envelopes, code braces and dotted mail trails. No flat SaaS vector people, generic feature tiles, fake performance numbers, testimonial blocks, or dark terminal hero.
+
+Tokens: paper #faf9f4, ink #202824, secondary ink #4c5b50, green #244936, mint #c8edcb, peach #f0c9ad, line #cbd1c5, pale paper #eaf0e4. Cairo 400/600 for reading and headings; Caveat500 for the cover name and drawing captions. Body16px/1.85, main display34–51px, reading measure below75ch. Documentation uses monospace for exact code and field values. Text contrast at least4.5:1.
+
+Desktop body max1160px with36px side margins; art and prose alternate in large spreads. Mobile is a linear story with20px margins, drawings fully visible, code wrapping safely, and reference tables contained. Text selection, link underlines, keyboard focus, and scrollbars follow the ink/paper palette. Native smooth anchor scroll respects reduced motion. No JavaScript, tracking, or live API calls on the public document.
+
+Source: content/story.html; styles: public/story/style.css; images: public/illustrations/. The Worker returns the literal document at /. Legacy public URLs point to story anchors. API and the account utility remain operational routes. A body paragraph ends the story; there is no footer bar.
+
+The free integration kit is an inline download passage after phone setup, paired with a plain file inventory. Detailed request fields, response meanings, Node/Python commands, account routes and device protocol extend the existing API notebook. They keep the same paper/ink/transparent-art treatment, code wrapping and quiet type. No navigation bar, button grid, new logo, or public-page JavaScript is introduced. The starter is an integration ZIP containing the test APK and client examples, not a self-hosted server installer.
