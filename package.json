@@ -87,7 +87,7 @@
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.1"
     },
-    "fflate@0.7.3": "0.7.5"
+    "fflate": "0.7.5"
   },
   "description": "An open-source SMS API powered by your own Android phone and SIM.",
   "license": "MIT",

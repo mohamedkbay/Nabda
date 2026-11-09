@@ -117,6 +117,8 @@ Verification after the dependency changes:
 - A fresh clone of the existing GitHub `main` received the reviewed source;
   normal `npm ci`, TypeScript, lint, the entire `npm test` command and the
   independent build passed there without local deployment configuration.
+  The final override syntax and lockfile also passed clean-install dry runs
+  with both npm 10 (the CI toolchain) and npm 11 (the local toolchain).
 - The retained legacy build passed after the transitive fixes.
 - Drizzle generated the expected 11-table schema into ignored QA output. The
   checked-in migrations and production database were not changed.
