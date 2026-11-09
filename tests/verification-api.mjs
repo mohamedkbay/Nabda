@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { build } from "esbuild";
-import { Miniflare, Log, LogLevel } from "miniflare";
+import { Miniflare, convertV4MiniflareOptions, Log, LogLevel } from "miniflare";
 
 // Isolated local Worker + real Miniflare D1. It cannot call a phone or send SMS.
 // The test-only wrapper supplies a trusted principal directly to the handler.
@@ -13,11 +13,11 @@ const bundled = await build({
   },
   bundle: true, write: false, format: "esm", platform: "browser", target: "es2022",
 });
-const mf = new Miniflare({
+const mf = new Miniflare(convertV4MiniflareOptions({
   modules: true, script: bundled.outputFiles[0].text,
   compatibilityDate: "2026-05-15", d1Databases: ["DB"],
   log: new Log(LogLevel.ERROR), cf: false,
-});
+}));
 let passed = 0;
 const failures = [];
 const db = await mf.getD1Database("DB");

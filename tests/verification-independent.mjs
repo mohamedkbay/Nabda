@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { build } from "esbuild";
-import { Miniflare, Log, LogLevel } from "miniflare";
+import { Miniflare, convertV4MiniflareOptions, Log, LogLevel } from "miniflare";
 
 // The real standalone Worker and authentication module run against isolated D1.
 // GitHub's three HTTP responses are simulated through the auth module's fetch
@@ -16,10 +16,10 @@ const bundled = await build({
 const source = bundled.outputFiles[0].text;
 assert.doesNotMatch(source, /vinext\/server|runWithConnectorBinding|sites-vite-plugin|oai-authenticated-user/, "The standalone bundle must not contain Sites identity adapters.");
 const { worker, handleIndependentAuth, readBrowserSession } = await import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
-const mf = new Miniflare({
+const mf = new Miniflare(convertV4MiniflareOptions({
   modules: true, script: "export default {fetch(){return new Response('isolated')}}",
   compatibilityDate: "2026-05-15", d1Databases: ["DB"], log: new Log(LogLevel.ERROR), cf: false,
-});
+}));
 const api = "https://nabda-api.example.test";
 const website = "https://nabda.example.test";
 const checks = [], failures = [], networkCalls = [], assetRequests = [];
@@ -218,7 +218,7 @@ try {
       }};
     `},bundle:true,write:false,format:"esm",platform:"browser",target:"es2022"});
     let actualOutbound=0;
-    const runtime=new Miniflare({modules:true,script:runtimeBundle.outputFiles[0].text,compatibilityDate:"2026-05-15",d1Databases:["DB"],bindings:{API_ORIGIN:api,WEBSITE_ORIGIN:website,GITHUB_CLIENT_ID:"runtime-fixture-client",GITHUB_CLIENT_SECRET:"runtime-fixture-secret"},outboundService:()=>{actualOutbound++;return new Response("Outbound HTTP is disabled in this fixture",{status:503});},log:new Log(LogLevel.ERROR),cf:false});
+    const runtime=new Miniflare(convertV4MiniflareOptions({modules:true,script:runtimeBundle.outputFiles[0].text,compatibilityDate:"2026-05-15",d1Databases:["DB"],bindings:{API_ORIGIN:api,WEBSITE_ORIGIN:website,GITHUB_CLIENT_ID:"runtime-fixture-client",GITHUB_CLIENT_SECRET:"runtime-fixture-secret"},outboundService:()=>{actualOutbound++;return new Response("Outbound HTTP is disabled in this fixture",{status:503});},log:new Log(LogLevel.ERROR),cf:false}));
     try{
       const db=await runtime.getD1Database("DB");
       for(const file of (await fs.readdir("drizzle")).filter(name=>name.endsWith(".sql")).sort()){

@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { build } from "esbuild";
-import { Miniflare } from "miniflare";
+import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 
 // Isolated local Cloudflare D1. This never calls a phone, carrier or deployed API.
 const bundled = await build({ entryPoints: ["lib/nabda-api.ts"], bundle: true, write: false, platform: "neutral", format: "esm", target: "es2022" });
 const { handleNabdaApi } = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString("base64")}`);
-const mf = new Miniflare({
+const mf = new Miniflare(convertV4MiniflareOptions({
   modules: true,
   script: "export default { fetch() { return new Response('isolated'); } }",
   compatibilityDate: "2026-05-15",
   d1Databases: { DB: `nabda-test-${crypto.randomUUID()}` },
-});
+}));
 
 try {
   const db = await mf.getD1Database("DB");

@@ -7,12 +7,22 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([
     "dist/**",
+    "deploy-build/**",
     ".vinext/**",
     ".wrangler/**",
     ".sites-runtime/**",
     "outputs/**",
     "work/**",
   ]),
+  {
+    files: ["components/nabda/**/*.{ts,tsx}"],
+    rules: {
+      // Shared with the standalone Vite dashboard, which has no Next router
+      // or image optimizer. Native links also cross the two hosting origins.
+      "@next/next/no-html-link-for-pages": "off",
+      "@next/next/no-img-element": "off",
+    },
+  },
   {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],
     rules: {

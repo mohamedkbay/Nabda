@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
 import { Frame, useLanguage } from "./shell";
 import { Arrow, Mark } from "./icons";
@@ -18,12 +18,13 @@ type DashboardProps = { signInPath?: string; signInLabel?: string; signOutPath?:
 
 export function Dashboard({ signInPath = "/auth/github?return_to=%2Fdashboard", signInLabel, signOutPath, websiteOrigin = "" }: DashboardProps = {}){
  const guide=(section:string,legacy:string)=>websiteOrigin?`${websiteOrigin}/#${section}`:legacy;
- const {language}=useLanguage();const ar=language==="ar";const [account,setAccount]=useState<Account|null>(null);const [loading,setLoading]=useState(true);const [signedOut,setSignedOut]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");const [tab,setTab]=useState("phones");const [busy,setBusy]=useState("");const [phoneName,setPhoneName]=useState("");const [keyName,setKeyName]=useState("");const [secret,setSecret]=useState("");const [pairing,setPairing]=useState<Pairing|null>(null);const [qr,setQr]=useState("");const [history,setHistory]=useState<History|null>(null);const [statusFilter,setStatusFilter]=useState("all");const [now,setNow]=useState(Date.now());
- async function load(){try{const value=await api<Account>("/api/account");setAccount(value);setSignedOut(false);setError("");}catch(e){if((e as {status?:number}).status===401)setSignedOut(true);else setError((e as Error).message);}finally{setLoading(false);}}
- async function loadHistory(cursor?:string){try{const next=await api<History>(`/api/messages?limit=25${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`);setHistory(old=>cursor&&old?{...next,messages:[...old.messages,...next.messages]}:next);}catch(e){setError((e as Error).message);}}
- useEffect(()=>{void load();const id=setInterval(()=>{setNow(Date.now());},1000);return()=>clearInterval(id);},[]);
- useEffect(()=>{if(!account)return;const id=setInterval(()=>{void load();if(tab==="activity")void loadHistory();},60000);return()=>clearInterval(id);},[account?.organization.id,tab]);
- useEffect(()=>{if(tab==="activity")void loadHistory();},[tab]);
+ const {language}=useLanguage();const ar=language==="ar";const [account,setAccount]=useState<Account|null>(null);const [loading,setLoading]=useState(true);const [signedOut,setSignedOut]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");const [tab,setTab]=useState("phones");const [busy,setBusy]=useState("");const [phoneName,setPhoneName]=useState("");const [keyName,setKeyName]=useState("");const [secret,setSecret]=useState("");const [pairing,setPairing]=useState<Pairing|null>(null);const [qr,setQr]=useState("");const [history,setHistory]=useState<History|null>(null);const [statusFilter,setStatusFilter]=useState("all");const [now,setNow]=useState(Date.now);
+ const load=useCallback(()=>api<Account>("/api/account").then(value=>{setAccount(value);setSignedOut(false);setError("");}).catch(e=>{if((e as {status?:number}).status===401)setSignedOut(true);else setError((e as Error).message);}).finally(()=>setLoading(false)),[]);
+ const loadHistory=useCallback((cursor?:string)=>api<History>(`/api/messages?limit=25${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`).then(next=>{setHistory(old=>cursor&&old?{...next,messages:[...old.messages,...next.messages]}:next);}).catch(e=>{setError((e as Error).message);}),[]);
+ useEffect(()=>{void load();const id=setInterval(()=>{setNow(Date.now());},1000);return()=>clearInterval(id);},[load]);
+ const organizationId=account?.organization.id;
+ useEffect(()=>{if(!organizationId)return;const id=setInterval(()=>{void load();if(tab==="activity")void loadHistory();},60000);return()=>clearInterval(id);},[organizationId,tab,load,loadHistory]);
+ useEffect(()=>{if(tab==="activity")void loadHistory();},[tab,loadHistory]);
  function date(value:string|null){return value?new Date(value).toLocaleString(ar?"ar-LY":"en-GB",{dateStyle:"medium",timeStyle:"short"}):(ar?"لا يوجد اتصال بعد":"No check-in yet");}
  async function createPairing(e:FormEvent){e.preventDefault();setBusy("pair");setError("");setQr("");try{const result=await api<Pairing>("/api/pairings","POST",{name:phoneName.trim()||(ar?"هاتفي":"My Android")});setPairing(result);setQr(await QRCode.toDataURL(JSON.stringify(result.qr),{width:260,margin:2,errorCorrectionLevel:"M",color:{dark:"#202824",light:"#fffefb"}}));}catch(e){setError((e as Error).message);}finally{setBusy("");}}
  async function createKey(e:FormEvent){e.preventDefault();setBusy("key");setError("");setSecret("");try{const result=await api<{key:string}>("/api/keys","POST",{name:keyName.trim()||(ar?"برنامجي":"My application")});setSecret(result.key);setKeyName("");await load();}catch(e){setError((e as Error).message);}finally{setBusy("");}}

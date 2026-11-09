@@ -13,8 +13,8 @@ async function privateInput() {
  process.stdout.write('Ready for private credential JSON (input hidden).\n');
  try{return await new Promise((resolve,reject)=>{
   let value='';
-  function done(error){stdin.off('data',data);stdin.off('end',ended);stdin.pause();error?reject(error):resolve(value);}
-  function ended(){value?done():done(new Error('Private credential input was empty.'));}
+  function done(error){stdin.off('data',data);stdin.off('end',ended);stdin.pause();if(error)reject(error);else resolve(value);}
+  function ended(){if(value)done();else done(new Error('Private credential input was empty.'));}
   function data(chunk){for(const character of chunk){if(character==='\u0003')return done(new Error('Cancelled before verification.'));if(character==='\r'||character==='\n')return done();if(character==='\u007f'||character==='\b'){value=value.slice(0,-1);continue;}value+=character;if(value.length>65536)return done(new Error('Private input is too large.'));}}
   stdin.on('data',data);stdin.once('end',ended);stdin.resume();
  });}finally{if(raw)stdin.setRawMode(false);}

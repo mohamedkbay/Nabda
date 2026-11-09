@@ -38,8 +38,12 @@ jobs:
         run: npm ci
       - name: Check TypeScript
         run: npm run typecheck
-      - name: Test API, authentication and deployment settings
+      - name: Lint source
+        run: npm run lint
+      - name: Test API, authentication, deployment settings and starter clients
         run: npm test
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
       - name: Build both independent outputs for localhost
         run: npm run build
       - name: Check the Worker bundle without deploying
